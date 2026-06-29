@@ -14,7 +14,7 @@ import {
   Info,
   ChevronRight,
   Download,
-  PhoneCall,
+  Bell,
 } from 'lucide-react';
 
 // ── Reusable row components ──────────────────────
@@ -241,6 +241,24 @@ export default function SettingsPage() {
   const [playSound,    setPlaySound]    = useBoolPref('pref_sound',     true);
   const [highlightRow, setHighlightRow] = useBoolPref('pref_highlight', true);
   const [callAlarm, setCallAlarm] = useBoolPref('pref_call_alarm', true);
+  const [alarmTime, setAlarmTime] = useState(() => localStorage.getItem('pref_call_alarm_time') || '20:00');
+  const [notifPermission, setNotifPermission] = useState(() => 
+    ('Notification' in window) ? Notification.permission : 'denied'
+  );
+
+  const updateAlarmTime = (newTime: string) => {
+    setAlarmTime(newTime);
+    localStorage.setItem('pref_call_alarm_time', newTime);
+  };
+
+  const requestPermission = async () => {
+    if ('Notification' in window) {
+      const res = await Notification.requestPermission();
+      setNotifPermission(res);
+    }
+  };
+
+
 
   return (
     <>
@@ -306,53 +324,58 @@ export default function SettingsPage() {
         <SectionHeader label={lang === 'vi' ? 'AI Gọi Nhắc Học (Virtual Call)' : 'AI virtual call'} />
         <SettingsGroup>
           <SettingsRow
-            icon={<PhoneCall size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Thử nghiệm gọi sau 5s' : 'Test call in 5s'}
-            sub={lang === 'vi' ? 'Kích hoạt thử nghiệm cuộc gọi nhắc nhở từ Thầy Lee' : 'Test virtual study reminder call from Strict Coach Lee'}
-            onClick={() => {
-              // 1. Unlock AudioContext by starting and closing a temporary one on user click gesture
-              try {
-                const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-                if (AudioCtxClass) {
-                  const tempCtx = new AudioCtxClass();
-                  if (tempCtx.state === 'suspended') {
-                    tempCtx.resume();
-                  }
-                  setTimeout(() => tempCtx.close(), 100);
-                }
-              } catch (e) {
-                console.warn('Audio pre-unlock error:', e);
-              }
-
-              // 2. Unlock SpeechSynthesis
-              try {
-                if ('speechSynthesis' in window) {
-                  const silent = new SpeechSynthesisUtterance('');
-                  window.speechSynthesis.speak(silent);
-                }
-              } catch (e) {}
-
-              // 3. Ask for Notification permission
-              try {
-                if ('Notification' in window && Notification.permission === 'default') {
-                  Notification.requestPermission();
-                }
-              } catch (e) {}
-
-              alert(lang === 'vi' ? 'Thử nghiệm kích hoạt! Cuộc gọi từ Thầy Lee sẽ đến sau 5 giây. Hãy đóng bảng này và chờ đợi nhé!' : 'Test activated! Call from Coach Lee in 5s.');
-              setTimeout(() => {
-                if ((window as any).triggerVirtualCall) {
-                  (window as any).triggerVirtualCall(lang === 'vi' ? 'Thầy Lee Nghiêm Khắc' : 'Strict Coach Lee');
-                }
-              }, 5000);
-            }}
+            icon={<Bell size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Quyền thông báo hệ thống' : 'System Notifications'}
+            sub={
+              notifPermission === 'granted'
+                ? (lang === 'vi' ? 'Đã cho phép thông báo' : 'Permission granted')
+                : notifPermission === 'denied'
+                ? (lang === 'vi' ? 'Đang bị chặn (Hãy cho phép trong cài đặt trình duyệt)' : 'Blocked (enable in browser settings)')
+                : (lang === 'vi' ? 'Chưa được cấp quyền (Nhấp để yêu cầu)' : 'Not granted (click to request)')
+            }
+            onClick={notifPermission !== 'granted' ? requestPermission : undefined}
+            right={
+              <span style={{
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: notifPermission === 'granted' ? 'var(--success)' : 'var(--danger)',
+                fontFamily: 'var(--font-label)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}>
+                {notifPermission === 'granted' ? 'ON' : 'OFF'}
+              </span>
+            }
           />
           <Divider />
           <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Hẹn giờ AI gọi nhắc' : 'AI Call Reminder Alarm'}
-            sub={lang === 'vi' ? 'Tự động gọi lúc 20:00 hàng ngày' : 'Automatically calls at 20:00 daily'}
+            label={lang === 'vi' ? 'Bật gọi nhắc hàng ngày' : 'Daily Call Alarm'}
+            sub={lang === 'vi' ? `Tự động gọi lúc ${alarmTime} hàng ngày` : `Automatically calls at ${alarmTime} daily`}
             right={<Toggle checked={callAlarm} onChange={() => setCallAlarm(v => !v)} />}
+          />
+          <Divider />
+          <SettingsRow
+            icon={<Clock size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Đặt giờ gọi nhắc' : 'Set Alarm Time'}
+            sub={lang === 'vi' ? 'Thay đổi khung giờ gọi nhắc nhở' : 'Change daily call reminder time'}
+            right={
+              <input
+                type="time"
+                value={alarmTime}
+                onChange={(e) => updateAlarmTime(e.target.value)}
+                style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10,
+                  color: 'var(--foam)',
+                  padding: '6px 10px',
+                  fontFamily: 'var(--font-label)',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                }}
+              />
+            }
           />
         </SettingsGroup>
 

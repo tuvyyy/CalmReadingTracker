@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   server: {
     host: '0.0.0.0',
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:8787',
     },
@@ -34,6 +35,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['notification-sw.js'],
+
         // Pre-cache all built assets (JS, CSS, HTML)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
 

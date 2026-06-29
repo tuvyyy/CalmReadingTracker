@@ -13,6 +13,16 @@ import SettingsPage from './pages/SettingsPage';
 import SyllabusDayPage from './pages/SyllabusDayPage';
 import ReloadPrompt from './components/ReloadPrompt';
 import VirtualCallOverlay from './components/VirtualCallOverlay';
+import { dbService } from './services/dbService';
+
+function getLocalDateKey(date: Date, time: string) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+    time,
+  ].join('-');
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -20,21 +30,35 @@ export default function App() {
   const [activeCall, setActiveCall] = useState<{ active: boolean; callerName: string } | null>(null);
   const [callbackTimer, setCallbackTimer] = useState<any>(null);
 
-  const sendSystemNotification = (callerName: string) => {
+  const sendSystemNotification = (callerName: string, bodyText?: string, targetPath?: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(callerName, {
-        body: 'Cuộc gọi thoại nhắc học bài đang đến! Nhấp vào để nghe máy. 📞',
+      const options = {
+        body: bodyText || 'Cuộc gọi thoại nhắc học bài đang đến! Nhấp vào để nghe máy. 📞',
         tag: 'study-call-reminder',
-        vibrate: [200, 100, 200],
-        requireInteraction: true
-      } as any);
-      
-      notification.onclick = () => {
-        window.focus();
-        if ((window as any).triggerVirtualCall) {
-          (window as any).triggerVirtualCall(callerName);
-        }
+        icon: '/icon.png',
+        badge: '/icon.png',
+        vibrate: [200, 100, 200, 100, 200],
+        requireInteraction: true,
+        data: { callerName, targetPath }
       };
+
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(callerName, options);
+        });
+      } else {
+        const notification = new Notification(callerName, options);
+        notification.onclick = () => {
+          window.focus();
+          if (targetPath) {
+            window.location.pathname = targetPath;
+          } else {
+            if ((window as any).triggerVirtualCall) {
+              (window as any).triggerVirtualCall(callerName);
+            }
+          }
+        };
+      }
     }
   };
 
@@ -85,21 +109,78 @@ export default function App() {
     };
   }, []);
 
-  // Daily virtual call alarm checker (at 20:00 every day)
+  useEffect(() => {
+    const triggerCallFromUrl = () => {
+      const callerName = new URLSearchParams(window.location.search).get('call');
+      if (!callerName) return;
+
+      setActiveCall({ active: true, callerName });
+      window.history.replaceState(null, '', window.location.pathname);
+    };
+
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'TRIGGER_VIRTUAL_CALL') {
+        setActiveCall({
+          active: true,
+          callerName: event.data.callerName || 'Thầy Lee Nghiêm Khắc',
+        });
+      }
+    };
+
+    triggerCallFromUrl();
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, []);
+
+  // Daily virtual call / review reminder alarm checker
   useEffect(() => {
     const t = setInterval(() => {
       const alarmEnabled = localStorage.getItem('pref_call_alarm') !== '0';
       if (!alarmEnabled) return;
       
+      const alarmTimeStr = localStorage.getItem('pref_call_alarm_time') || '20:00';
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      if (timeStr === '20:00' && now.getSeconds() < 12) {
-        const alarmCaller = localStorage.getItem('lang') === 'en' ? 'Strict Coach Lee' : 'Thầy Lee Nghiêm Khắc';
-        if (document.visibilityState === 'hidden') {
-          sendSystemNotification(alarmCaller);
+      
+      if (timeStr === alarmTimeStr && now.getSeconds() < 12) {
+        const sentKey = getLocalDateKey(now, alarmTimeStr);
+        if (localStorage.getItem('pref_call_alarm_last_sent') === sentKey) return;
+        localStorage.setItem('pref_call_alarm_last_sent', sentKey);
+
+        const lang = localStorage.getItem('lang') || 'vi';
+        
+        // Check wrong questions and vocab review status
+        const wrongQuestions = dbService.getWrongQuestions();
+        const vocabList = dbService.getVocabList();
+        const vocabReviewCount = vocabList.filter((v: any) => v.status === 'review').length;
+        
+        // Priority 1: If there are wrong questions, remind them to review wrong questions
+        // Priority 2: If there are vocab words to review, remind them to review vocab
+        // Priority 3: Otherwise, trigger the strict Coach Lee calling overlay!
+        if (wrongQuestions.length > 0) {
+          const title = lang === 'vi' ? 'Thầy Lee: Ôn tập câu sai 📝' : 'Coach Lee: Wrong Questions Review 📝';
+          const body = lang === 'vi'
+            ? `Bạn đang có ${wrongQuestions.length} câu làm sai chưa sửa. Vào sửa lỗi ngay nào!`
+            : `You have ${wrongQuestions.length} incorrect questions to review. Settle them now!`;
+          sendSystemNotification(title, body, '/wrong');
+        } else if (vocabReviewCount > 0) {
+          const title = lang === 'vi' ? 'Thầy Lee: Ôn tập từ vựng 🗂️' : 'Coach Lee: Vocab Review 🗂️';
+          const body = lang === 'vi'
+            ? `Hôm nay bạn có ${vocabReviewCount} từ vựng cần ôn tập. Bấm để ôn từ ngay!`
+            : `You have ${vocabReviewCount} vocabulary words to review today. Tap to practice!`;
+          sendSystemNotification(title, body, '/vocab');
         } else {
-          if ((window as any).triggerVirtualCall) {
-            (window as any).triggerVirtualCall(alarmCaller);
+          // Standard simulated call overlay
+          const alarmCaller = lang === 'en' ? 'Strict Coach Lee' : 'Thầy Lee Nghiêm Khắc';
+          if (document.visibilityState === 'hidden') {
+            sendSystemNotification(alarmCaller);
+          } else {
+            if ((window as any).triggerVirtualCall) {
+              (window as any).triggerVirtualCall(alarmCaller);
+            }
           }
         }
       }
