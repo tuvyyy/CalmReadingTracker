@@ -76,8 +76,10 @@ body {
 
 #root {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
 }
 
 a { 
@@ -133,6 +135,17 @@ p {
 .water-bg {
   position: relative;
   z-index: 1;
+}
+
+.practice-screen {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.7);
 }
 
 /* Noise overlay disabled for smooth gradient aesthetic */
@@ -197,6 +210,9 @@ p {
   position: sticky;
   top: 0;
   z-index: 300;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   background: rgba(7, 16, 20, 0.88);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -833,11 +849,15 @@ p {
 
 .practice-title {
   flex: 1;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: 0.98rem;
   font-weight: 600;
   color: var(--foam);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timer-pill {
@@ -894,12 +914,16 @@ p {
 
 .question-nav-strip {
   display: flex;
+  width: 100%;
+  max-width: 100%;
   gap: 6px;
   margin-top: 10px;
   padding-bottom: 2px;
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .question-nav-strip::-webkit-scrollbar {
@@ -907,6 +931,7 @@ p {
 }
 
 .question-nav-button {
+  flex: 0 0 auto;
   min-width: 38px;
   height: 32px;
   border-radius: 12px;
@@ -966,10 +991,15 @@ p {
 
 /* Answer Sheet sections container */
 .answer-sheet {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   padding: 16px 14px calc(132px + env(safe-area-inset-bottom));
 }
 
 .answer-sheet-card {
+  width: 100%;
+  max-width: 100%;
   background: rgba(11, 31, 42, 0.75);
   border: 1px solid var(--line);
   border-radius: 28px;
@@ -1041,6 +1071,7 @@ p {
   display: flex;
   gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
 .answer-choice {
@@ -1087,6 +1118,24 @@ p {
   color: var(--ink);
   font-weight: 800;
   box-shadow: 0 0 16px rgba(255, 139, 139, 0.4);
+}
+
+.practice-question-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.practice-question-text {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.practice-question-card .quiz-option {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* Floating grading CTA button */
@@ -2090,6 +2139,22 @@ p {
 
   .answer-sheet-card {
     border-radius: 22px;
+  }
+
+  .practice-question-card {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  .practice-question-text {
+    font-size: 0.88rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .practice-question-card .quiz-option {
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    font-size: 0.78rem !important;
   }
 
   .part-section__header {

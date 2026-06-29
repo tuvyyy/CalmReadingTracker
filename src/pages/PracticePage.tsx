@@ -102,7 +102,7 @@ const QuestionCard = memo(function QuestionCard({
 
   return (
     <div
-      className="glass-panel fade-up"
+      className="glass-panel fade-up practice-question-card"
       ref={cardRef}
       style={{
         padding: '18px 20px',
@@ -130,7 +130,7 @@ const QuestionCard = memo(function QuestionCard({
         )}
       </div>
 
-      <p style={{
+      <p className="practice-question-text" style={{
         fontSize: '0.95rem',
         lineHeight: 1.55,
         fontWeight: 700,
@@ -508,7 +508,7 @@ export default function PracticePage() {
   };
 
   return (
-    <div className="water-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="water-bg practice-screen">
       {/* ── Sticky glass header ── */}
       <div className="practice-header">
         <div className="practice-header__row1">
