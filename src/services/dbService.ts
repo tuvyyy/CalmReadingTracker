@@ -423,6 +423,7 @@ class DbService {
         submittedAt: new Date().toISOString(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+      this.recordStudyAction(100);
     } catch (e) {
       // ignore
     }
@@ -516,6 +517,7 @@ class DbService {
     });
     try {
       localStorage.setItem(VOCAB_STORAGE_KEY, JSON.stringify(updated));
+      this.recordStudyAction(5);
     } catch {
       // ignore
     }
@@ -751,6 +753,101 @@ class DbService {
         completedAt: new Date().toISOString()
       };
       localStorage.setItem('toeic_syllabus_progress', JSON.stringify(data));
+      this.recordStudyAction(50);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // ── Gamification System ──
+  public getUserXP(): number {
+    try {
+      return parseInt(localStorage.getItem('user_xp') || '0', 10);
+    } catch {
+      return 0;
+    }
+  }
+
+  public addXP(amount: number): number {
+    try {
+      const current = this.getUserXP();
+      const nextXp = current + amount;
+      localStorage.setItem('user_xp', nextXp.toString());
+      return nextXp;
+    } catch {
+      return 0;
+    }
+  }
+
+  public getStreakCount(): number {
+    try {
+      const lastStudyDate = localStorage.getItem('user_last_study_date') || '';
+      if (!lastStudyDate) return 0;
+      
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+      const todayStr = localDate.toISOString().split('T')[0];
+      
+      const yesterday = new Date(localDate.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      if (lastStudyDate !== todayStr && lastStudyDate !== yesterdayStr) {
+        localStorage.setItem('user_streak_count', '0');
+        return 0;
+      }
+      
+      return parseInt(localStorage.getItem('user_streak_count') || '0', 10);
+    } catch {
+      return 0;
+    }
+  }
+
+  public getStudyHistory(): string[] {
+    try {
+      const stored = localStorage.getItem('user_study_history');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public recordStudyAction(xpToAdd: number = 0) {
+    try {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+      const todayStr = localDate.toISOString().split('T')[0];
+      
+      const stored = localStorage.getItem('user_study_history');
+      const history: string[] = stored ? JSON.parse(stored) : [];
+      
+      if (xpToAdd > 0) {
+        this.addXP(xpToAdd);
+      }
+      
+      if (history.includes(todayStr)) {
+        return; // Already studied today
+      }
+      
+      const lastStudyDate = localStorage.getItem('user_last_study_date') || '';
+      let streak = parseInt(localStorage.getItem('user_streak_count') || '0', 10);
+      
+      const yesterday = new Date(localDate.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      if (!lastStudyDate) {
+        streak = 1;
+      } else if (lastStudyDate === yesterdayStr) {
+        streak += 1;
+      } else {
+        streak = 1; // broken
+      }
+      
+      history.push(todayStr);
+      localStorage.setItem('user_study_history', JSON.stringify(history));
+      localStorage.setItem('user_streak_count', streak.toString());
+      localStorage.setItem('user_last_study_date', todayStr);
     } catch (e) {
       // ignore
     }

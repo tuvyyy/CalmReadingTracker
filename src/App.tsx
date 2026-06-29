@@ -6,7 +6,6 @@ import AppShell from './components/AppShell';
 import HomePage from './pages/HomePage';
 import TestsPage from './pages/TestsPage';
 import PracticePage from './pages/PracticePage';
-import ImportAnswerPage from './pages/ImportAnswerPage';
 import WrongQuestionsPage from './pages/WrongQuestionsPage';
 import VocabularyPage from './pages/VocabularyPage';
 import SettingsPage from './pages/SettingsPage';
@@ -101,10 +100,15 @@ export default function App() {
     }
   };
   useEffect(() => {
+    // Force iOS Safari to support :active pseudo-class on tap
+    const handleTouchStart = () => {};
+    document.body.addEventListener('touchstart', handleTouchStart, { passive: true });
+
     (window as any).triggerVirtualCall = (callerName?: string) => {
       setActiveCall({ active: true, callerName: callerName || 'Thầy Lee Nghiêm Khắc' });
     };
     return () => {
+      document.body.removeEventListener('touchstart', handleTouchStart);
       delete (window as any).triggerVirtualCall;
     };
   }, []);
@@ -264,7 +268,6 @@ export default function App() {
             <Route path="/"       element={<HomePage />} />
             <Route path="/tests"  element={<TestsPage />} />
             <Route path="/syllabus" element={<TestsPage />} />
-            <Route path="/import" element={<ImportAnswerPage />} />
             <Route path="/wrong"  element={<WrongQuestionsPage />} />
             <Route path="/vocab"    element={<VocabularyPage />} />
             <Route path="/grammar"  element={<Navigate to="/syllabus/day/grammar-core" replace />} />

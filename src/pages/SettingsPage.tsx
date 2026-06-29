@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLang } from '../i18n/LangContext';
 import type { Lang } from '../i18n/translations';
 import { dbService } from '../services/dbService';
@@ -13,7 +12,6 @@ import {
   AlertTriangle,
   Info,
   ChevronRight,
-  Download,
   Bell,
 } from 'lucide-react';
 
@@ -234,7 +232,6 @@ function SettingsGroup({ children }: { children: React.ReactNode }) {
 // ── Main page ────────────────────────────────────
 export default function SettingsPage() {
   const { lang, setLang, t } = useLang();
-  const navigate = useNavigate();
 
   // Local toggle states (would persist to localStorage in a full app)
   const [showTimer,    setShowTimer]    = useBoolPref('pref_timer',     true);
@@ -300,25 +297,9 @@ export default function SettingsPage() {
           />
         </SettingsGroup>
 
-        {/* Language applied notice */}
-        <div className="alert alert--info" style={{ marginTop: 0 }}>
-          <Info size={14} style={{ flexShrink: 0 }} />
-          {lang === 'vi'
-            ? 'Giao diện đang dùng Tiếng Việt. Chuyển sang English để đọc app bằng tiếng Anh.'
-            : 'Interface is in English. Switch to Tiếng Việt to use the app in Vietnamese.'
-          }
-        </div>
 
-        {/* ── Utilities ── */}
-        <SectionHeader label={lang === 'vi' ? 'Tiện ích hệ thống' : 'System Utilities'} />
-        <SettingsGroup>
-          <SettingsRow
-            icon={<Download size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Cổng nhập liệu (Import Portal)' : 'Import Portal'}
-            sub={lang === 'vi' ? 'Nhập đáp án đề thi hoặc dán danh sách từ vựng từ Google Sheets' : 'Paste answer keys or Google Sheets vocabulary tables'}
-            onClick={() => navigate('/import')}
-          />
-        </SettingsGroup>
+
+
 
         {/* ── Virtual Call Reminders ── */}
         <SectionHeader label={lang === 'vi' ? 'AI Gọi Nhắc Học (Virtual Call)' : 'AI virtual call'} />

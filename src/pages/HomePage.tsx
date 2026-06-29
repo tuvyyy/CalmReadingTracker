@@ -4,7 +4,7 @@ import { useLang } from '../i18n/LangContext';
 import { dbService } from '../services/dbService';
 import {
   BookOpen, AlertCircle, BookMarked,
-  ChevronRight, TrendingUp, Compass, Sparkles, BookOpenCheck
+  ChevronRight, TrendingUp, Compass, Sparkles, BookOpenCheck, Flame
 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -79,6 +79,86 @@ export default function HomePage() {
     return completed[completed.length - 1];
   }, []);
 
+  const xp = dbService.getUserXP();
+  const streak = dbService.getStreakCount();
+  const studyHistory = dbService.getStudyHistory();
+
+  const levelInfo = useMemo(() => {
+    if (xp < 200) {
+      return {
+        level: 1,
+        title: lang === 'vi' ? 'Tân Binh' : 'Novice',
+        minXp: 0,
+        maxXp: 200,
+        color: 'linear-gradient(135deg, #7ad3ff 0%, #4da3ff 100%)',
+        bgColor: 'rgba(77, 163, 255, 0.08)',
+        borderColor: 'rgba(77, 163, 255, 0.2)'
+      };
+    }
+    if (xp < 600) {
+      return {
+        level: 2,
+        title: lang === 'vi' ? 'Chiến Binh TOEIC' : 'TOEIC Warrior',
+        minXp: 200,
+        maxXp: 600,
+        color: 'linear-gradient(135deg, #b088ff 0%, #804dff 100%)',
+        bgColor: 'rgba(128, 77, 255, 0.08)',
+        borderColor: 'rgba(128, 77, 255, 0.2)'
+      };
+    }
+    if (xp < 1500) {
+      return {
+        level: 3,
+        title: lang === 'vi' ? 'Bậc Thầy Từ Vựng' : 'Vocab Master',
+        minXp: 600,
+        maxXp: 1500,
+        color: 'linear-gradient(135deg, #ff85a2 0%, #ff4d6d 100%)',
+        bgColor: 'rgba(255, 77, 109, 0.08)',
+        borderColor: 'rgba(255, 77, 109, 0.2)'
+      };
+    }
+    return {
+      level: 4,
+      title: lang === 'vi' ? 'Huyền Thoại 800+' : 'TOEIC 800+ Legend',
+      minXp: 1500,
+      maxXp: 5000,
+      color: 'linear-gradient(135deg, #ffcc33 0%, #ff6600 100%)',
+      bgColor: 'rgba(255, 102, 0, 0.12)',
+      borderColor: 'rgba(255, 102, 0, 0.3)'
+    };
+  }, [xp, lang]);
+
+  const progressPct = useMemo(() => {
+    const range = levelInfo.maxXp - levelInfo.minXp;
+    const earned = xp - levelInfo.minXp;
+    return Math.min(100, Math.max(0, (earned / range) * 100));
+  }, [xp, levelInfo]);
+
+  const last7Days = useMemo(() => {
+    const list = [];
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(localDate.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = d.toISOString().split('T')[0];
+      
+      const dayNum = d.getDay();
+      let label = '';
+      if (lang === 'vi') {
+        label = dayNum === 0 ? 'CN' : `T${dayNum + 1}`;
+      } else {
+        const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        label = labels[dayNum];
+      }
+      
+      const completed = studyHistory.includes(dateStr);
+      list.push({ dateStr, label, completed, isToday: i === 0 });
+    }
+    return list;
+  }, [studyHistory, lang]);
+
   return (
     <>
       {/* ── Hero (Poster Story style) ── */}
@@ -147,6 +227,127 @@ export default function HomePage() {
           <div className="stat-glass" style={{ flex: 1, padding: '10px 6px', background: 'rgba(18, 43, 59, 0.4)', borderRadius: 14 }}>
             <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--aqua)' }}>{metrics.avg}%</div>
             <div style={{ fontSize: '0.62rem', color: 'var(--silver)', marginTop: 2 }}>{t('home', 'avg_score')}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Gamified Study Streak & XP Dashboard ── */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div className="glass-panel fade-up" style={{
+          padding: '20px 18px',
+          borderRadius: 24,
+          background: 'linear-gradient(135deg, rgba(18, 43, 59, 0.4) 0%, rgba(7, 16, 20, 0.5) 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          textAlign: 'left'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div 
+                className="streak-flame-container" 
+                style={{ 
+                  background: streak > 0 ? 'rgba(255, 102, 0, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  border: streak > 0 ? '1px solid rgba(255, 102, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: 14, 
+                  padding: '8px 10px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 6,
+                  color: streak > 0 ? '#ff6600' : 'var(--silver)',
+                  boxShadow: streak > 0 ? '0 0 15px rgba(255, 102, 0, 0.2)' : 'none'
+                }}
+              >
+                <Flame size={18} fill={streak > 0 ? '#ff6600' : 'none'} className={streak > 0 ? 'pulse-flame' : ''} />
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>
+                  {streak} {lang === 'vi' ? 'Ngày' : 'Days'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.74rem', color: 'var(--silver)', fontWeight: 500 }}>
+                {lang === 'vi' ? 'Chuỗi liên tục' : 'Streak Fire'}
+              </span>
+            </div>
+            
+            <div 
+              style={{ 
+                background: levelInfo.bgColor, 
+                border: `1px solid ${levelInfo.borderColor}`, 
+                borderRadius: 999, 
+                padding: '5px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <span 
+                style={{ 
+                  fontSize: '0.68rem', 
+                  fontWeight: 700, 
+                  letterSpacing: '0.03em',
+                  fontFamily: 'var(--font-label)',
+                  background: levelInfo.color,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}
+              >
+                {levelInfo.title}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--silver)', marginBottom: 6 }}>
+              <span>Level {levelInfo.level}</span>
+              <span>{xp} / {levelInfo.maxXp} XP</span>
+            </div>
+            <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  width: `${progressPct}%`, 
+                  height: '100%', 
+                  background: levelInfo.color, 
+                  borderRadius: 999,
+                  transition: 'width 0.6s cubic-bezier(0.1, 0.8, 0.2, 1)' 
+                }} 
+              />
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
+          <div style={{ fontSize: '0.72rem', color: 'var(--silver)', fontWeight: 600, letterSpacing: '0.03em' }}>
+            {lang === 'vi' ? 'LỊCH SỬ TUẦN NÀY' : 'WEEKLY STUDY HISTORY'}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+            {last7Days.map(day => (
+              <div key={day.dateStr} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
+                <span style={{ fontSize: '0.62rem', color: day.isToday ? 'var(--aqua)' : 'var(--silver)', fontWeight: day.isToday ? 700 : 500 }}>
+                  {day.label}
+                </span>
+                <div 
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: day.completed 
+                      ? 'rgba(255, 102, 0, 0.12)' 
+                      : 'rgba(255, 255, 255, 0.03)',
+                    border: day.completed 
+                      ? '1px solid rgba(255, 102, 0, 0.3)' 
+                      : '1px solid rgba(255, 255, 255, 0.05)',
+                    boxShadow: day.completed ? '0 0 10px rgba(255, 102, 0, 0.2)' : 'none',
+                    color: day.completed ? '#ff6600' : 'rgba(255, 255, 255, 0.15)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {day.completed ? (
+                    <Flame size={12} fill="#ff6600" strokeWidth={1} />
+                  ) : (
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

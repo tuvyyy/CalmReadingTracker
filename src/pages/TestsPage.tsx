@@ -117,7 +117,7 @@ export default function TestsPage() {
                   {lang === 'vi' ? 'Không tìm thấy đề thi' : 'No tests found'}
                 </div>
                 <div className="empty-state__sub" style={{ fontSize: '0.78rem', color: 'var(--silver)', maxWidth: 280, margin: '6px auto 0', lineHeight: 1.5 }}>
-                  {lang === 'vi' ? 'Danh sách trống. Nhập đáp án đề thi tại Cổng nhập liệu trong Cài đặt để tạo đề.' : 'Deck is empty. Paste answer keys in the Import Portal to create tests.'}
+                  {lang === 'vi' ? 'Danh sách đề thi đang trống.' : 'The exam deck list is currently empty.'}
                 </div>
               </div>
             ) : (

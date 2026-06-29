@@ -1,13 +1,34 @@
 // src/components/AppShell.tsx
-import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import BottomTabs from './BottomTabs';
 import { audioService } from '../services/audioService';
 import { ArrowUp } from 'lucide-react';
 
 export default function AppShell() {
+  const location = useLocation();
   const [isPlaying, setIsPlaying] = useState(() => audioService.isPlaying());
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const prevPathRef = useRef(location.pathname);
+
+  const getPathIndex = (path: string) => {
+    if (path === '/') return 0;
+    if (path.startsWith('/tests') || path.startsWith('/syllabus')) return 1;
+    if (path.startsWith('/wrong')) return 2;
+    if (path.startsWith('/vocab')) return 3;
+    if (path.startsWith('/settings')) return 4;
+    return 0;
+  };
+
+  useEffect(() => {
+    const prevIndex = getPathIndex(prevPathRef.current);
+    const currIndex = getPathIndex(location.pathname);
+    if (currIndex !== prevIndex) {
+      setSlideDirection(currIndex > prevIndex ? 'left' : 'right');
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname]);
 
   const handleToggle = () => {
     const playing = audioService.toggleAmbient();
@@ -52,8 +73,10 @@ export default function AppShell() {
         <ArrowUp size={18} strokeWidth={2.5} />
       </button>
 
-      <div className="screen">
-        <Outlet />
+      <div className="screen" style={{ overflowX: 'hidden', position: 'relative' }}>
+        <div key={location.pathname} className={`page-transition-wrapper slide-${slideDirection}`}>
+          <Outlet />
+        </div>
       </div>
       <BottomTabs />
     </div>
