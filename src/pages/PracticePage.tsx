@@ -23,6 +23,7 @@ interface ResultData {
 }
 
 const LETTERS: Letter[] = ['A', 'B', 'C', 'D'];
+const PART5_TIME_OPTIONS = [8, 12, 15, 20, 25, 30] as const;
 const TOTAL   = 100;
 const START_Q = 101;
 
@@ -34,6 +35,11 @@ function getPart(n: number): 5 | 6 | 7 {
 
 function fmt(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function getPart5Minutes(raw: string | null) {
+  const minutes = Number(raw);
+  return PART5_TIME_OPTIONS.includes(minutes as typeof PART5_TIME_OPTIONS[number]) ? minutes : 15;
 }
 
 interface AnswerRowProps {
@@ -299,14 +305,15 @@ export default function PracticePage() {
 
   const [searchParams] = useSearchParams();
   const partParam = searchParams.get('part') || (hasQuestionSet ? '5' : 'all'); // 'all' | '5' | '6' | '7'
+  const minutesParam = searchParams.get('minutes');
 
   // Determine active questions range
   const activeRange = useMemo(() => {
-    if (partParam === '5') return { start: 101, end: 130, total: 30, limitSecs: 15 * 60 };
+    if (partParam === '5') return { start: 101, end: 130, total: 30, limitSecs: getPart5Minutes(minutesParam) * 60 };
     if (partParam === '6') return { start: 131, end: 146, total: 16, limitSecs: 10 * 60 };
     if (partParam === '7') return { start: 147, end: 200, total: 54, limitSecs: 50 * 60 };
     return { start: 101, end: 200, total: 100, limitSecs: 75 * 60 };
-  }, [partParam]);
+  }, [partParam, minutesParam]);
 
   const [answers, setAnswers] = useState<QA[]>(() =>
     Array.from({ length: TOTAL }, (_, i) => ({ questionNo: START_Q + i, selected: null }))
@@ -315,26 +322,33 @@ export default function PracticePage() {
   const [submitted, setSubmitted] = useState(false);
   const [result,    setResult]    = useState<ResultData | null>(null);
   const [showWrongOnly, setShowWrongOnly] = useState(false);
+  const [showTimeUp, setShowTimeUp] = useState(false);
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Synchronize initial timer limit on range load
   useEffect(() => {
     setTimeLeft(activeRange.limitSecs);
     setShowWrongOnly(false);
+    setShowTimeUp(false);
   }, [activeRange]);
 
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || showTimeUp || timeLeft <= 0) return;
     const id = setInterval(() =>
       setTimeLeft(t => {
-        if (t <= 1) { clearInterval(id); doSubmit(); return 0; }
+        if (t <= 1) {
+          clearInterval(id);
+          setShowTimeUp(true);
+          return 0;
+        }
         return t - 1;
       }), 1000);
     return () => clearInterval(id);
-  }, [submitted]); // eslint-disable-line
+  }, [submitted, showTimeUp, timeLeft]);
 
   const doSubmit = useCallback(() => {
     setSubmitted(true);
+    setShowTimeUp(false);
     let correct = 0;
     const p5 = { correct: 0, total: partParam === '5' ? 30 : 0 };
     const p6 = { correct: 0, total: partParam === '6' ? 16 : 0 };
@@ -422,6 +436,7 @@ export default function PracticePage() {
     setSubmitted(false);
     setResult(null);
     setShowWrongOnly(false);
+    setShowTimeUp(false);
     setTimeLeft(activeRange.limitSecs);
 
     window.setTimeout(() => {
@@ -522,7 +537,7 @@ export default function PracticePage() {
 
           <span className="practice-title">{title}</span>
 
-          <div className={`timer-pill${danger ? ' danger' : warn ? ' warn' : ''}`}>
+          <div className={`timer-pill${timeLeft === 0 ? ' expired' : danger ? ' danger' : warn ? ' warn' : ''}`}>
             {fmt(timeLeft)}
           </div>
         </div>
@@ -638,6 +653,41 @@ export default function PracticePage() {
                 style={{ flex: 1 }} 
                 onClick={() => {
                   setShowConfirm(false);
+                  doSubmit();
+                }}
+              >
+                {lang === 'vi' ? 'Nộp bài' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTimeUp && !submitted && (
+        <div className="modal-overlay" onClick={() => setShowTimeUp(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ minHeight: 'auto', paddingBottom: 28 }}>
+            <div className="modal-handle" />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', color: 'var(--foam)', textAlign: 'center', marginBottom: 10 }}>
+              {lang === 'vi' ? 'Hết thời gian' : 'Time is up'}
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--silver)', textAlign: 'center', marginBottom: 22, lineHeight: 1.6 }}>
+              {lang === 'vi'
+                ? 'Bài chưa tự nộp. Bạn có thể xem lại đáp án đã chọn rồi bấm Chấm bài khi sẵn sàng.'
+                : 'Your answers were not submitted automatically. Review your choices, then submit when ready.'}
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => setShowTimeUp(false)}
+              >
+                {lang === 'vi' ? 'Xem lại bài' : 'Review'}
+              </button>
+              <button
+                className="btn-primary"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => {
+                  setShowTimeUp(false);
                   doSubmit();
                 }}
               >

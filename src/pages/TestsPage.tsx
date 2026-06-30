@@ -13,6 +13,8 @@ import { useLang } from '../i18n/LangContext';
 import { dbService } from '../services/dbService';
 import { SYLLABUS_DAYS } from '../services/syllabusData';
 
+const PART5_TIME_OPTIONS = [8, 12, 15, 20, 25, 30];
+
 export default function TestsPage() {
   const nav = useNavigate();
   const location = useLocation();
@@ -24,6 +26,7 @@ export default function TestsPage() {
   
   // States for Modals
   const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState(15);
 
   // Syllabus calculation metrics
   const completedSyllabusDays = useMemo(() => {
@@ -124,7 +127,7 @@ export default function TestsPage() {
               tests.map((testItem, i) => {
                 const hasKey = dbService.hasAnswerKey(testItem.id);
                 const totalCount = testItem.totalCount || (testItem.part === '5' ? 30 : 100);
-                const duration = testItem.part === '5' ? 15 : 75;
+                const duration = testItem.part === '5' ? '8-30' : '75';
                 const partLabel = testItem.part && testItem.part !== 'all' ? `Part ${testItem.part}` : 'Full Test';
 
                 return (
@@ -422,73 +425,109 @@ export default function TestsPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-              {(selectedTest.part === '5'
-                ? [
-                  { partKey: '5', titleVi: 'Luyện Part 5 (30 câu)', titleEn: 'Part 5 Only (30 q)', descVi: '15 phút · Câu đơn ngắn · Có giải thích chi tiết', descEn: '15 mins · Incomplete Sentences · Detailed explanations' },
-                ]
-                : [
+            {selectedTest.part === '5' ? (
+              <div className="practice-setup-panel">
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--foam)' }}>
+                    {lang === 'vi' ? 'Luyện Part 5 (30 câu)' : 'Part 5 Only (30 q)'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--silver)', marginTop: 3 }}>
+                    {lang === 'vi' ? 'Chọn thời gian làm bài' : 'Choose your practice timer'}
+                  </div>
+                </div>
+
+                <div className="time-choice-grid" aria-label="Chọn thời gian làm bài">
+                  {PART5_TIME_OPTIONS.map(minutes => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      className={`time-choice${selectedDuration === minutes ? ' active' : ''}`}
+                      onClick={() => setSelectedDuration(minutes)}
+                    >
+                      {minutes}
+                      <span>{lang === 'vi' ? 'phút' : 'min'}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  className="btn-primary"
+                  disabled={!isTestCustom}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={() => {
+                    if (!isTestCustom) return;
+                    setActiveSetupId(null);
+                    nav(`/practice/${selectedTest.id}?part=5&minutes=${selectedDuration}`);
+                  }}
+                >
+                  {lang === 'vi' ? `Bắt đầu · ${selectedDuration} phút` : `Start · ${selectedDuration} min`}
+                  <ArrowRight size={15} strokeWidth={2.4} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                {[
                   { partKey: 'all', titleVi: 'Full Test (100 câu)', titleEn: 'Full Test (100 q)', descVi: '75 phút · Làm cả 3 part', descEn: '75 mins · Parts 5, 6, 7' },
                   { partKey: '5', titleVi: 'Luyện Part 5 (30 câu)', titleEn: 'Part 5 Only (30 q)', descVi: '15 phút · Câu đơn ngắn', descEn: '15 mins · Incomplete Sentences' },
                   { partKey: '6', titleVi: 'Luyện Part 6 (16 câu)', titleEn: 'Part 6 Only (16 q)', descVi: '10 phút · Điền đoạn văn', descEn: '10 mins · Text Completion' },
                   { partKey: '7', titleVi: 'Luyện Part 7 (54 câu)', titleEn: 'Part 7 Only (54 q)', descVi: '50 phút · Đọc hiểu văn bản', descEn: '50 mins · Reading Comprehension' },
-                ]
-              ).map(({ partKey, titleVi, titleEn, descVi, descEn }) => {
-                const displayTitle = lang === 'vi' ? titleVi : titleEn;
-                const displayDesc = lang === 'vi' ? descVi : descEn;
+                ].map(({ partKey, titleVi, titleEn, descVi, descEn }) => {
+                  const displayTitle = lang === 'vi' ? titleVi : titleEn;
+                  const displayDesc = lang === 'vi' ? descVi : descEn;
 
-                return (
-                  <button
-                    key={partKey}
-                    onClick={() => {
-                      if (!isTestCustom) return;
-                      setActiveSetupId(null);
-                      nav(`/practice/${selectedTest.id}?part=${partKey}`);
-                    }}
-                    className={`glass-panel ${isTestCustom ? '' : 'disabled'}`}
-                    disabled={!isTestCustom}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderRadius: 16,
-                      background: 'rgba(18, 43, 59, 0.45)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      textAlign: 'left',
-                      cursor: isTestCustom ? 'pointer' : 'not-allowed',
-                      opacity: isTestCustom ? 1 : 0.55
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foam)' }}>
-                        {displayTitle}
+                  return (
+                    <button
+                      key={partKey}
+                      onClick={() => {
+                        if (!isTestCustom) return;
+                        setActiveSetupId(null);
+                        nav(`/practice/${selectedTest.id}?part=${partKey}`);
+                      }}
+                      className={`glass-panel ${isTestCustom ? '' : 'disabled'}`}
+                      disabled={!isTestCustom}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderRadius: 16,
+                        background: 'rgba(18, 43, 59, 0.45)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        textAlign: 'left',
+                        cursor: isTestCustom ? 'pointer' : 'not-allowed',
+                        opacity: isTestCustom ? 1 : 0.55
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foam)' }}>
+                          {displayTitle}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--silver)', marginTop: 2 }}>
+                          {displayDesc}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--silver)', marginTop: 2 }}>
-                        {displayDesc}
-                      </div>
-                    </div>
-                    
-                    {isTestCustom ? (
-                      <ArrowRight size={15} color="var(--aqua)" />
-                    ) : (
-                      <span style={{ 
-                        fontSize: '0.58rem', 
-                        fontFamily: 'var(--font-label)', 
-                        background: 'rgba(255, 139, 139, 0.1)', 
-                        color: 'var(--danger)', 
-                        padding: '3px 8px', 
-                        borderRadius: 6,
-                        fontWeight: 700
-                      }}>
-                        {lang === 'vi' ? 'ĐANG CẬP NHẬT' : 'COMING SOON'}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                      
+                      {isTestCustom ? (
+                        <ArrowRight size={15} color="var(--aqua)" />
+                      ) : (
+                        <span style={{ 
+                          fontSize: '0.58rem', 
+                          fontFamily: 'var(--font-label)', 
+                          background: 'rgba(255, 139, 139, 0.1)', 
+                          color: 'var(--danger)', 
+                          padding: '3px 8px', 
+                          borderRadius: 6,
+                          fontWeight: 700
+                        }}>
+                          {lang === 'vi' ? 'ĐANG CẬP NHẬT' : 'COMING SOON'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <button 
               className="btn-secondary" 
