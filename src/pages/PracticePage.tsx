@@ -113,10 +113,8 @@ const QuestionCard = memo(function QuestionCard({
       style={{
         padding: '18px 20px',
         borderRadius: 20,
-        background: answered && !submitted ? 'rgba(18, 57, 74, 0.58)' : 'rgba(18, 43, 59, 0.45)',
-        border: answered
-          ? '1px solid rgba(142, 216, 232, 0.32)'
-          : '1px solid rgba(255, 255, 255, 0.05)',
+        background: answered && !submitted ? 'rgba(18, 57, 74, 0.5)' : 'rgba(18, 43, 59, 0.36)',
+        border: 'none',
         textAlign: 'left',
         scrollMarginTop: 128,
       }}
