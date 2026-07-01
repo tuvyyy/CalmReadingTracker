@@ -3,6 +3,14 @@ import { useLang } from '../i18n/LangContext';
 import type { Lang } from '../i18n/translations';
 import { dbService } from '../services/dbService';
 import {
+  getPushServerConfig,
+  getPushSubscriptionState,
+  isPushSupported,
+  sendServerPushTest,
+  subscribeToServerPush,
+  type PushServerConfig,
+} from '../services/pushNotificationService';
+import {
   Languages,
   Clock,
   Volume2,
@@ -241,6 +249,10 @@ export default function SettingsPage() {
   const [dailyNotification, setDailyNotification] = useBoolPref('pref_study_notification_enabled', localStorage.getItem('pref_call_alarm') !== '0');
   const [alarmTime, setAlarmTime] = useState(() => localStorage.getItem('pref_study_notification_time') || localStorage.getItem('pref_call_alarm_time') || '20:00');
   const [lastSent, setLastSent] = useState(() => localStorage.getItem('pref_study_notification_last_sent') || '');
+  const [pushServer, setPushServer] = useState<PushServerConfig | null>(null);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushMessage, setPushMessage] = useState('');
+  const [pushBusy, setPushBusy] = useState(false);
   const [notifPermission, setNotifPermission] = useState(() => 
     ('Notification' in window) ? Notification.permission : 'denied'
   );
@@ -263,7 +275,15 @@ export default function SettingsPage() {
     const refreshNotificationState = () => {
       if ('Notification' in window) setNotifPermission(Notification.permission);
       setLastSent(localStorage.getItem('pref_study_notification_last_sent') || '');
+      getPushSubscriptionState()
+        .then(state => setPushSubscribed(state.subscribed))
+        .catch(() => setPushSubscribed(false));
     };
+
+    getPushServerConfig()
+      .then(setPushServer)
+      .catch(() => setPushServer({ enabled: false, publicKey: '', hasVapid: false, hasStore: false }));
+    refreshNotificationState();
 
     window.addEventListener('focus', refreshNotificationState);
     document.addEventListener('visibilitychange', refreshNotificationState);
@@ -273,35 +293,33 @@ export default function SettingsPage() {
     };
   }, []);
 
+  const enableServerPush = async () => {
+    setPushBusy(true);
+    setPushMessage('');
+    try {
+      await subscribeToServerPush({ time: alarmTime, lang });
+      setNotifPermission(Notification.permission);
+      setPushSubscribed(true);
+      setPushMessage(lang === 'vi' ? 'Đã bật Web Push cho thiết bị này.' : 'Web Push is enabled for this device.');
+    } catch (error) {
+      setPushMessage(error instanceof Error ? error.message : 'Không bật được Web Push.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
   const sendTestNotification = async () => {
-    if (!('Notification' in window)) {
-      globalThis.alert(lang === 'vi' ? 'Trình duyệt này chưa hỗ trợ thông báo.' : 'This browser does not support notifications.');
-      return;
-    }
-
-    let permission = Notification.permission;
-    if (permission !== 'granted') {
-      permission = await Notification.requestPermission();
-      setNotifPermission(permission);
-    }
-
-    if (permission !== 'granted') return;
-
-    const options = {
-      body: lang === 'vi'
-        ? 'Thông báo thử hoạt động rồi. Bấm vào để mở app.'
-        : 'Test notification is working. Tap to open the app.',
-      icon: '/icon.png',
-      badge: '/icon.png',
-      tag: 'study-reminder-test',
-      data: { targetPath: '/' },
-    };
-
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      registration.showNotification(lang === 'vi' ? 'Water Spirit nhắc học' : 'Water Spirit Reminder', options);
-    } else {
-      new Notification(lang === 'vi' ? 'Water Spirit nhắc học' : 'Water Spirit Reminder', options);
+    setPushBusy(true);
+    setPushMessage('');
+    try {
+      await sendServerPushTest({ time: alarmTime, lang });
+      setNotifPermission(Notification.permission);
+      setPushSubscribed(true);
+      setPushMessage(lang === 'vi' ? 'Đã gửi push test từ Vercel.' : 'Sent a test push from Vercel.');
+    } catch (error) {
+      setPushMessage(error instanceof Error ? error.message : 'Không gửi được push test.');
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -381,10 +399,44 @@ export default function SettingsPage() {
           <Divider />
           <SettingsRow
             icon={<Send size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Gửi thông báo thử' : 'Send test notification'}
-            sub={lang === 'vi' ? 'Bấm để kiểm tra nhanh trên điện thoại' : 'Tap to quickly test on your phone'}
+            label={lang === 'vi' ? 'Bật Web Push thiết bị này' : 'Enable Web Push'}
+            sub={
+              !isPushSupported()
+                ? (lang === 'vi' ? 'Trình duyệt/PWA này chưa hỗ trợ Push API' : 'This browser/PWA does not support Push API')
+                : pushServer && !pushServer.enabled
+                ? (lang === 'vi' ? 'Server Vercel chưa cấu hình VAPID/KV' : 'Vercel server is missing VAPID/KV config')
+                : pushSubscribed
+                ? (lang === 'vi' ? 'Thiết bị đã đăng ký nhận push' : 'This device is subscribed')
+                : (lang === 'vi' ? 'Bấm để đăng ký nhận push khi app không mở' : 'Tap to subscribe for push when the app is closed')
+            }
+            onClick={enableServerPush}
+            right={
+              <span style={{
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: pushSubscribed ? 'var(--success)' : 'var(--silver)',
+                fontFamily: 'var(--font-label)',
+                textTransform: 'uppercase',
+              }}>
+                {pushBusy ? '...' : pushSubscribed ? 'PUSH ON' : 'PUSH OFF'}
+              </span>
+            }
+          />
+          <Divider />
+          <SettingsRow
+            icon={<Send size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Gửi push thử từ server' : 'Send server push test'}
+            sub={lang === 'vi' ? 'Bấm xong khóa màn hình thử xem có báo không' : 'Tap, then lock the screen to test delivery'}
             onClick={sendTestNotification}
           />
+          {pushMessage && (
+            <>
+              <Divider />
+              <div style={{ padding: '12px 16px', fontSize: '0.72rem', lineHeight: 1.5, color: pushMessage.includes('chưa cấu hình') || pushMessage.includes('missing') || pushMessage.includes('Không') ? 'var(--danger)' : 'var(--success)' }}>
+                {pushMessage}
+              </div>
+            </>
+          )}
           <Divider />
           <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}

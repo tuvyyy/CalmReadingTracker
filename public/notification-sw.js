@@ -1,3 +1,29 @@
+self.addEventListener('push', event => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {
+      title: 'Water Spirit Reminder',
+      body: event.data ? event.data.text() : 'Time to study TOEIC.',
+      targetPath: '/',
+    };
+  }
+
+  const title = payload.title || 'Water Spirit Reminder';
+  const options = {
+    body: payload.body || 'Time to study TOEIC.',
+    icon: '/icon.png',
+    badge: '/icon.png',
+    tag: 'study-reminder',
+    data: {
+      targetPath: payload.targetPath || '/',
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
