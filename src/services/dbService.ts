@@ -43,7 +43,9 @@ const BUILT_IN_TESTS: TestItem[] = BUILT_IN_PART5_PRACTICE_TESTS.map((test, inde
   part: '5',
 }));
 
-const BUILT_IN_VOCAB: TestVocabItem[] = [
+type VocabSeedItem = Omit<TestVocabItem, 'options'> & { options?: string[] };
+
+const BUILT_IN_VOCAB_SEEDS: VocabSeedItem[] = [
   {
     id: 'v1', word: 'reimbursement', type: 'noun',
     meaning: 'hoàn trả / khoản hoàn tiền',
@@ -218,7 +220,295 @@ const BUILT_IN_VOCAB: TestVocabItem[] = [
     options: ['lề đường, mép vỉa hè', 'hàng rào', 'sân thượng / sân hiên / khu vực ngoài trời', 'cảng / bến cảng'],
     status: 'new',
   },
+  {
+    id: 'v_listening_20', word: 'nominate', type: 'verb',
+    meaning: 'đề cử / chỉ định',
+    example: 'The board will nominate one candidate for the leadership position.',
+    exampleVi: 'Hội đồng sẽ đề cử một ứng viên cho vị trí lãnh đạo.',
+    synonyms: 'appoint; propose; recommend',
+    usage: 'nominate someone for/as something; nominate a candidate; dùng cho bầu chọn, chức vụ, giải thưởng hoặc vai trò trong công ty.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_21', word: 'chairperson', type: 'noun',
+    meaning: 'chủ tịch / người chủ trì',
+    example: 'The chairperson will lead the monthly planning meeting.',
+    exampleVi: 'Chủ tịch sẽ điều hành cuộc họp lập kế hoạch hằng tháng.',
+    synonyms: 'chair; head; presiding officer',
+    usage: 'committee chairperson; board chairperson; meeting chairperson; chỉ người đứng đầu hoặc người điều phối một hội đồng/cuộc họp.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_22', word: 'moderately', type: 'adverb',
+    meaning: 'vừa phải / chừng mực',
+    example: 'The product is moderately priced for small businesses.',
+    exampleVi: 'Sản phẩm có giá vừa phải đối với các doanh nghiệp nhỏ.',
+    synonyms: 'reasonably; fairly; somewhat',
+    usage: 'moderately priced; moderately successful; use moderately; trạng từ bổ nghĩa cho tính từ/động từ, nghĩa không quá nhiều.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_23', word: 'exclusively', type: 'adverb',
+    meaning: 'độc quyền / chỉ riêng',
+    example: 'The discount is available exclusively to members.',
+    exampleVi: 'Ưu đãi chỉ dành riêng cho hội viên.',
+    synonyms: 'only; solely; uniquely',
+    usage: 'available exclusively; sold exclusively; exclusively for members; hay đi với available/sold/offered để nói phạm vi độc quyền.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_24', word: 'additionally', type: 'adverb',
+    meaning: 'ngoài ra / thêm vào đó',
+    example: 'The company offers free delivery; additionally, it provides installation support.',
+    exampleVi: 'Công ty cung cấp giao hàng miễn phí; ngoài ra, công ty còn hỗ trợ lắp đặt.',
+    synonyms: 'also; furthermore; moreover',
+    usage: 'additionally; additionally provide/offer/include; từ nối bổ sung ý, thường đứng đầu câu hoặc sau dấu chấm phẩy.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_25', word: 'grounded', type: 'adjective',
+    meaning: 'có cơ sở / thực tế / vững chắc',
+    example: 'Her decision was grounded in customer feedback.',
+    exampleVi: 'Quyết định của cô ấy dựa trên phản hồi của khách hàng.',
+    synonyms: 'based; founded; practical',
+    usage: 'grounded in facts/data/evidence; well-grounded; TOEIC hay gặp cấu trúc be grounded in + noun.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_26', word: 'confidential', type: 'adjective',
+    meaning: 'bảo mật / bí mật',
+    example: 'All employee records must remain confidential.',
+    exampleVi: 'Tất cả hồ sơ nhân viên phải được giữ bí mật.',
+    synonyms: 'private; secret; restricted',
+    usage: 'confidential information; confidential report; keep confidential; hay dùng trong bối cảnh tài liệu, hồ sơ, thông tin khách hàng.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_27', word: 'capable', type: 'adjective',
+    meaning: 'có khả năng / đủ năng lực',
+    example: 'Ms. Benning is capable of leading a large team.',
+    exampleVi: 'Cô Benning có khả năng dẫn dắt một đội ngũ lớn.',
+    synonyms: 'competent; able; qualified',
+    usage: 'capable of + V-ing; fully capable; highly capable; cấu trúc quan trọng: capable of + V-ing.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_28', word: 'ruling', type: 'noun',
+    meaning: 'phán quyết / quyết định chính thức',
+    example: 'The court issued a ruling on the contract dispute.',
+    exampleVi: 'Tòa án đã đưa ra phán quyết về tranh chấp hợp đồng.',
+    synonyms: 'decision; judgment; verdict',
+    usage: 'court ruling; final ruling; issue a ruling; thường dùng trong ngữ cảnh pháp lý hoặc quyết định chính thức.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_29', word: 'shifting', type: 'adjective',
+    meaning: 'đang thay đổi / dịch chuyển',
+    example: 'The company adjusted its strategy to meet shifting market demands.',
+    exampleVi: 'Công ty đã điều chỉnh chiến lược để đáp ứng nhu cầu thị trường đang thay đổi.',
+    synonyms: 'changing; moving; evolving',
+    usage: 'shifting demand; shifting priorities; shifting market; thường bổ nghĩa cho demand, priorities, trends, market.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_30', word: 'convincing', type: 'adjective',
+    meaning: 'thuyết phục',
+    example: 'The manager gave a convincing reason for the schedule change.',
+    exampleVi: 'Người quản lý đưa ra một lý do thuyết phục cho việc thay đổi lịch trình.',
+    synonyms: 'persuasive; compelling; credible',
+    usage: 'convincing case; convincing argument; convincing reason; presenting a convincing case = trình bày một lập luận thuyết phục.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_31', word: 'divided', type: 'verb / adjective',
+    meaning: 'được chia / bị chia ra',
+    example: 'The project budget was divided among three departments.',
+    exampleVi: 'Ngân sách dự án được chia cho ba phòng ban.',
+    synonyms: 'split; separated; allocated',
+    usage: 'divide among/between; divided into sections; dạng quá khứ/quá khứ phân từ của divide.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_32', word: 'deducted', type: 'verb',
+    meaning: 'khấu trừ / trừ ra',
+    example: 'The service fee was deducted from the final payment.',
+    exampleVi: 'Phí dịch vụ đã được khấu trừ khỏi khoản thanh toán cuối cùng.',
+    synonyms: 'subtracted; withheld; taken off',
+    usage: 'deduct from; deduct a fee; deducted amount; hay gặp trong lương, phí, thuế, hóa đơn.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_33', word: 'calculated', type: 'verb / adjective',
+    meaning: 'tính toán / được tính toán',
+    example: 'The accountant calculated the total cost of the renovation.',
+    exampleVi: 'Kế toán đã tính tổng chi phí của việc cải tạo.',
+    synonyms: 'computed; estimated; worked out',
+    usage: 'calculate the cost; calculate interest; carefully calculated; từ thường gặp trong tài chính, chi phí, số liệu.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_34', word: 'prolonged', type: 'adjective / verb',
+    meaning: 'kéo dài / bị kéo dài',
+    example: 'A prolonged delay affected the delivery schedule.',
+    exampleVi: 'Sự chậm trễ kéo dài đã ảnh hưởng đến lịch giao hàng.',
+    synonyms: 'extended; lengthened; drawn-out',
+    usage: 'prolonged delay; prolonged discussion; prolonged period; hay dùng cho delay, discussion, period, absence.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_35', word: 'settle a debt', type: 'verb phrase',
+    meaning: 'trả hết nợ / thanh toán khoản nợ',
+    example: 'Mr. Gordon continued to repay the loan in small amounts to settle his debt.',
+    exampleVi: 'Ông Gordon tiếp tục trả khoản vay từng khoản nhỏ để thanh toán hết nợ.',
+    synonyms: 'pay off; repay; clear a debt',
+    usage: 'settle a debt; settle an account; settle a bill; settle đi với debt = trả hết/thanh toán khoản nợ.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_36', word: 'identical', type: 'adjective',
+    meaning: 'giống hệt / y hệt',
+    example: 'The two invoices are almost identical.',
+    exampleVi: 'Hai hóa đơn gần như giống hệt nhau.',
+    synonyms: 'same; matching; indistinguishable',
+    usage: 'identical to; almost identical; identical copies; cấu trúc: identical to + noun.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_37', word: 'broad', type: 'adjective',
+    meaning: 'rộng / bao quát',
+    example: 'The report provides a broad overview of the industry.',
+    exampleVi: 'Báo cáo cung cấp cái nhìn tổng quan rộng về ngành.',
+    synonyms: 'wide; extensive; general',
+    usage: 'broad range; broad overview; broad market; thường dùng với range, overview, market, experience.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_38', word: 'dominant', type: 'adjective',
+    meaning: 'thống trị / chiếm ưu thế / áp đảo',
+    example: 'The company became the dominant provider in mobile telecommunications.',
+    exampleVi: 'Công ty đã trở thành nhà cung cấp thống trị trong lĩnh vực viễn thông di động.',
+    synonyms: 'leading; major; prevailing',
+    usage: 'dominant provider; dominant position; dominant market player; dominant provider = nhà cung cấp thống trị/áp đảo.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_39', word: 'similar', type: 'adjective',
+    meaning: 'tương tự / giống',
+    example: 'The new software is similar to the previous version.',
+    exampleVi: 'Phần mềm mới tương tự phiên bản trước.',
+    synonyms: 'alike; comparable; related',
+    usage: 'similar to; similar features; similar design; cấu trúc: similar to + noun.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_40', word: 'generously', type: 'adverb',
+    meaning: 'hào phóng / rộng lượng',
+    example: 'The company generously donated equipment to the school.',
+    exampleVi: 'Công ty đã hào phóng quyên tặng thiết bị cho trường học.',
+    synonyms: 'kindly; freely; liberally',
+    usage: 'donate generously; generously allow; give generously; generously allow = hào phóng cho phép.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_41', word: 'accidentally', type: 'adverb',
+    meaning: 'vô tình / tình cờ',
+    example: 'The assistant accidentally sent the report to the wrong department.',
+    exampleVi: 'Trợ lý đã vô tình gửi báo cáo đến sai phòng ban.',
+    synonyms: 'unintentionally; by mistake; inadvertently',
+    usage: 'accidentally delete/send/break; accidentally left; trạng từ chỉ hành động không cố ý.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_42', word: 'immensely', type: 'adverb',
+    meaning: 'vô cùng / cực kỳ',
+    example: 'The training program was immensely helpful for new staff.',
+    exampleVi: 'Chương trình đào tạo cực kỳ hữu ích cho nhân viên mới.',
+    synonyms: 'extremely; greatly; tremendously',
+    usage: 'immensely helpful; immensely popular; immensely grateful; trạng từ nhấn mạnh mức độ mạnh.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_43', word: 'intensively', type: 'adverb',
+    meaning: 'chuyên sâu / với cường độ cao',
+    example: 'The staff were trained intensively before the software launch.',
+    exampleVi: 'Nhân viên được đào tạo chuyên sâu trước khi ra mắt phần mềm.',
+    synonyms: 'thoroughly; deeply; extensively',
+    usage: 'train/study/work intensively; thường dùng khi nói về đào tạo, học tập hoặc làm việc với cường độ cao.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_44', word: 'imagination', type: 'noun',
+    meaning: 'trí tưởng tượng',
+    example: 'Good advertising often depends on creativity and imagination.',
+    exampleVi: 'Quảng cáo tốt thường phụ thuộc vào sự sáng tạo và trí tưởng tượng.',
+    synonyms: 'creativity; inventiveness',
+    usage: 'use your imagination; creativity and imagination; danh từ trong ngữ cảnh sáng tạo, quảng cáo, ý tưởng.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_45', word: 'perspective', type: 'noun',
+    meaning: 'góc nhìn / quan điểm',
+    example: 'Working overseas gave her a new perspective on customer service.',
+    exampleVi: 'Làm việc ở nước ngoài cho cô ấy một góc nhìn mới về dịch vụ khách hàng.',
+    synonyms: 'viewpoint; point of view; outlook',
+    usage: 'a new perspective on; from a different perspective; perspective on + noun = góc nhìn về một vấn đề.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_46', word: 'overview', type: 'noun',
+    meaning: 'tổng quan / cái nhìn khái quát',
+    example: 'Before the meeting, the manager gave an overview of the quarterly results.',
+    exampleVi: 'Trước cuộc họp, quản lý đưa ra phần tổng quan về kết quả quý.',
+    synonyms: 'summary; outline; review',
+    usage: 'give/provide an overview of; overview of + noun = phần tổng quan về nội dung nào đó.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_47', word: 'reflection', type: 'noun',
+    meaning: 'sự suy ngẫm / sự nhìn lại',
+    example: 'His speech was a reflection on the company’s first ten years.',
+    exampleVi: 'Bài phát biểu của anh ấy là sự nhìn lại mười năm đầu của công ty.',
+    synonyms: 'thought; consideration; review',
+    usage: 'reflection on; time for reflection; còn có nghĩa là hình ảnh phản chiếu tùy ngữ cảnh.',
+    status: 'new',
+  },
+  {
+    id: 'v_listening_48', word: 'monument', type: 'noun',
+    meaning: 'tượng đài',
+    example: 'Many tourists stopped to take photos of the historic monument in the city square.',
+    exampleVi: 'Nhiều du khách dừng lại để chụp ảnh tượng đài lịch sử ở quảng trường thành phố.',
+    synonyms: 'memorial; statue; landmark',
+    usage: 'historic monument; war monument; national monument; monument = tượng đài / công trình kỷ niệm.',
+    status: 'new',
+  },
 ];
+
+function buildVocabOptions(items: VocabSeedItem[]): TestVocabItem[] {
+  return items.map((item, index) => {
+    const base = item.options?.includes(item.meaning)
+      ? [...item.options]
+      : [item.meaning, ...(item.options ?? [])];
+    const distractors = items
+      .filter(other => other.word.toLowerCase() !== item.word.toLowerCase())
+      .map(other => other.meaning)
+      .filter((meaning, meaningIndex, list) => meaning && meaning !== item.meaning && list.indexOf(meaning) === meaningIndex);
+
+    let offset = 1;
+    while (base.length < 4 && distractors.length > 0 && offset <= distractors.length * 2) {
+      const candidate = distractors[(index + offset * 3) % distractors.length];
+      if (!base.includes(candidate)) base.push(candidate);
+      offset++;
+    }
+
+    return {
+      ...item,
+      options: base.slice(0, 4),
+      status: item.status || 'new',
+    };
+  });
+}
+
+const BUILT_IN_VOCAB: TestVocabItem[] = buildVocabOptions(BUILT_IN_VOCAB_SEEDS);
 
 export interface SavedResult {
   score: number;
@@ -267,6 +557,29 @@ class DbService {
       ...builtInTests,
       ...customTests,
     ];
+  }
+
+  private mergeBuiltInVocab(list: TestVocabItem[]): TestVocabItem[] {
+    const localByWord = new Map<string, TestVocabItem>();
+    list.forEach(item => {
+      localByWord.set(item.word.toLowerCase().trim(), item);
+    });
+
+    const builtInWords = new Set(BUILT_IN_VOCAB.map(item => item.word.toLowerCase().trim()));
+    const mergedBuiltIns = BUILT_IN_VOCAB.map(item => {
+      const existing = localByWord.get(item.word.toLowerCase().trim());
+      if (!existing) return item;
+
+      return {
+        ...item,
+        id: existing.id || item.id,
+        status: existing.status || item.status || 'new',
+        options: item.options.length >= 4 ? item.options : existing.options,
+      };
+    });
+
+    const customItems = list.filter(item => !builtInWords.has(item.word.toLowerCase().trim()));
+    return [...mergedBuiltIns, ...customItems];
   }
 
   private getResults(): Record<string, SavedResult> {
@@ -439,26 +752,67 @@ class DbService {
     }
   }
 
-  public saveWrongQuestion(testTitle: string, questionNo: number, part: 5 | 6 | 7, chosen: string, correct: string) {
+  public saveWrongQuestion(
+    testTitle: string,
+    questionNo: number,
+    part: 5 | 6 | 7,
+    chosen: string,
+    correct: string,
+    testId?: string,
+    questionDetail?: PracticeQuestion,
+  ) {
     try {
       const list = this.getWrongQuestions();
-      const exists = list.some((item: any) => item.testTitle === testTitle && item.questionNo === questionNo);
-      if (!exists) {
-        list.push({
-          id: Date.now() + Math.random(),
-          questionNo,
-          part,
-          chosen,
-          correct,
-          errorType: 'grammar',
-          note: `Lỗi sai: chọn nhầm ${chosen} (đáp án đúng: ${correct}).`,
-          testTitle
-        });
-        localStorage.setItem('toeic_wrong_questions', JSON.stringify(list));
-      }
+      const existingIndex = list.findIndex((item: any) => item.testTitle === testTitle && item.questionNo === questionNo);
+      const current: any = existingIndex >= 0 ? list[existingIndex] : {};
+      const nextItem = {
+        ...current,
+        id: current.id || Date.now() + Math.random(),
+        questionNo,
+        part,
+        chosen,
+        correct,
+        errorType: current.errorType || 'grammar',
+        note: `Lỗi sai: chọn nhầm ${chosen} (đáp án đúng: ${correct}).`,
+        testTitle,
+        testId: testId || current.testId,
+        question: questionDetail?.question || current.question,
+        options: questionDetail?.options || current.options,
+        explanation: questionDetail?.explanation || current.explanation,
+        translation: questionDetail?.translation || current.translation,
+        vocabulary: questionDetail?.vocabulary || current.vocabulary,
+      };
+
+      if (existingIndex >= 0) list[existingIndex] = nextItem;
+      else list.push(nextItem);
+      localStorage.setItem('toeic_wrong_questions', JSON.stringify(list));
     } catch {
       // ignore
     }
+  }
+
+  public getWrongQuestionDetail(item: any): PracticeQuestion | null {
+    const title = String(item?.testTitle || '').replace(/\s+\(Part\s+\d+\)$/i, '').trim();
+    const builtInTest = BUILT_IN_PART5_PRACTICE_TESTS.find(test =>
+      item?.testId === test.id ||
+      title === test.title ||
+      String(item?.testTitle || '').startsWith(test.title)
+    );
+
+    const directQuestion = item?.question && Array.isArray(item?.options)
+      ? {
+          questionNo: item.questionNo,
+          part: item.part,
+          question: item.question,
+          options: item.options,
+          answer: item.correct,
+          explanation: item.explanation || item.note || '',
+          translation: item.translation,
+          vocabulary: item.vocabulary,
+        } as PracticeQuestion
+      : null;
+
+    return builtInTest?.questions.find(q => q.questionNo === item.questionNo) || directQuestion;
   }
 
   public deleteWrongQuestion(id: number) {
@@ -493,12 +847,14 @@ class DbService {
     try {
       const stored = localStorage.getItem(VOCAB_STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const merged = this.mergeBuiltInVocab(JSON.parse(stored));
+        localStorage.setItem(VOCAB_STORAGE_KEY, JSON.stringify(merged));
+        return merged;
       }
     } catch {
       // ignore
     }
-    return BUILT_IN_VOCAB;
+    return this.mergeBuiltInVocab(BUILT_IN_VOCAB);
   }
 
   public handleVocabAnswer(id: string, correct: boolean) {

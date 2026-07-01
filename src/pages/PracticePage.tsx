@@ -375,7 +375,9 @@ export default function PracticePage() {
           questionNo,
           p,
           selected,
-          corr
+          corr,
+          activeTestId,
+          questionMap.get(questionNo)
         );
       }
     });
@@ -387,7 +389,7 @@ export default function PracticePage() {
     audioService.playFeedbackSound(pctCorrect >= 70);
     
     dbService.saveResult(activeTestId, correct, activeRange.total, partParam);
-  }, [answers, activeTestId, correctAnswers, title, activeRange, partParam]);
+  }, [answers, activeTestId, correctAnswers, title, activeRange, partParam, questionMap]);
 
   const handleSelect = useCallback((qno: number, l: Letter) => {
     if (submitted) return;
