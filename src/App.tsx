@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LangProvider } from './i18n/LangContext';
 import AppShell from './components/AppShell';
 import HomePage from './pages/HomePage';
@@ -11,7 +11,6 @@ import VocabularyPage from './pages/VocabularyPage';
 import SettingsPage from './pages/SettingsPage';
 import SyllabusDayPage from './pages/SyllabusDayPage';
 import ReloadPrompt from './components/ReloadPrompt';
-import VirtualCallOverlay from './components/VirtualCallOverlay';
 import { dbService } from './services/dbService';
 
 function getLocalDateKey(date: Date, time: string) {
@@ -39,7 +38,6 @@ function buildReminderPayload() {
         ? `Bạn còn ${dashboard.wrong.total} câu sai cần sửa. Bấm vào ôn lại ngay.`
         : `You have ${dashboard.wrong.total} mistakes to review. Tap to fix them now.`,
       targetPath: '/wrong',
-      callerName: '',
     };
   }
 
@@ -50,42 +48,38 @@ function buildReminderPayload() {
         ? `Có ${dashboard.vocab.reviewCount} từ đang cần review hôm nay.`
         : `${dashboard.vocab.reviewCount} vocabulary words are waiting for review.`,
       targetPath: '/vocab',
-      callerName: '',
     };
   }
 
   return {
-    title: lang === 'vi' ? 'Thầy Lee Nghiêm Khắc' : 'Strict Coach Lee',
+    title: lang === 'vi' ? 'Water Spirit nhắc học' : 'Water Spirit Reminder',
     body: lang === 'vi'
       ? `Còn ${dashboard.daysToExam} ngày tới ngày thi. Vào học một lượt ngắn nào.`
       : `${dashboard.daysToExam} days until exam day. Time for a short study round.`,
-    targetPath: '',
-    callerName: lang === 'vi' ? 'Thầy Lee Nghiêm Khắc' : 'Strict Coach Lee',
+    targetPath: '/tests?tab=syllabus',
   };
 }
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isFading, setIsFading] = useState(false);
-  const [activeCall, setActiveCall] = useState<{ active: boolean; callerName: string } | null>(null);
-  const [callbackTimer, setCallbackTimer] = useState<any>(null);
 
-  const sendSystemNotification = useCallback(async (callerName: string, bodyText?: string, targetPath?: string) => {
+  const sendSystemNotification = useCallback(async (title: string, bodyText: string, targetPath: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       const options = {
-        body: bodyText || 'Cuộc gọi thoại nhắc học bài đang đến! Nhấp vào để nghe máy. 📞',
-        tag: 'study-call-reminder',
+        body: bodyText,
+        tag: 'study-reminder',
         icon: '/icon.png',
         badge: '/icon.png',
-        vibrate: [200, 100, 200, 100, 200],
-        requireInteraction: true,
-        data: { callerName, targetPath }
+        vibrate: [160, 80, 160],
+        requireInteraction: false,
+        data: { targetPath }
       };
 
       if ('serviceWorker' in navigator) {
         try {
           const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification(callerName, options);
+          await registration.showNotification(title, options);
           return true;
         } catch {
           // Fall back to the page notification below.
@@ -93,16 +87,10 @@ export default function App() {
       }
 
       try {
-        const notification = new Notification(callerName, options);
+        const notification = new Notification(title, options);
         notification.onclick = () => {
           window.focus();
-          if (targetPath) {
-            window.location.pathname = targetPath;
-          } else {
-            if ((window as any).triggerVirtualCall) {
-              (window as any).triggerVirtualCall(callerName);
-            }
-          }
+          window.location.href = targetPath;
         };
         return true;
       } catch {
@@ -111,100 +99,36 @@ export default function App() {
     }
     return false;
   }, []);
-
-  const handleCallClose = (reason: 'accept' | 'decline' | 'silent') => {
-    setActiveCall(null);
-    if (reason === 'accept' || reason === 'decline') {
-      if (callbackTimer) {
-        clearTimeout(callbackTimer);
-      }
-      
-      const delay = reason === 'decline' ? 10000 : 25000; // 10s if declined, 25s if accepted
-      const timer = setTimeout(() => {
-        const currentPath = window.location.pathname;
-        const isStudying = currentPath.includes('/practice/') || currentPath.includes('/syllabus/day/');
-        if (!isStudying) {
-          const caller = reason === 'decline' 
-            ? 'Thầy Lee (Gọi Lại - Phạt Trốn Học)' 
-            : 'Thầy Lee (Gọi Lại - Chưa Học Bài)';
-
-          if (document.visibilityState === 'hidden') {
-            void sendSystemNotification(caller);
-          } else {
-            if ((window as any).triggerVirtualCall) {
-              (window as any).triggerVirtualCall(caller);
-            }
-          }
-        }
-      }, delay);
-      
-      setCallbackTimer(timer);
-    }
-  };
-
-  const handlePageChange = (path: string) => {
-    if (path.includes('/practice/') || path.includes('/syllabus/day/')) {
-      if (callbackTimer) {
-        clearTimeout(callbackTimer);
-        setCallbackTimer(null);
-      }
-    }
-  };
   useEffect(() => {
     // Force iOS Safari to support :active pseudo-class on tap
     const handleTouchStart = () => {};
     document.body.addEventListener('touchstart', handleTouchStart, { passive: true });
 
-    (window as any).triggerVirtualCall = (callerName?: string) => {
-      setActiveCall({ active: true, callerName: callerName || 'Thầy Lee Nghiêm Khắc' });
-    };
     return () => {
       document.body.removeEventListener('touchstart', handleTouchStart);
-      delete (window as any).triggerVirtualCall;
     };
   }, []);
 
   useEffect(() => {
-    const triggerCallFromUrl = () => {
-      const callerName = new URLSearchParams(window.location.search).get('call');
-      if (!callerName) return;
-
-      setActiveCall({ active: true, callerName });
-      window.history.replaceState(null, '', window.location.pathname);
-    };
-
-    const handleServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'TRIGGER_VIRTUAL_CALL') {
-        setActiveCall({
-          active: true,
-          callerName: event.data.callerName || 'Thầy Lee Nghiêm Khắc',
-        });
-      }
-    };
-
-    triggerCallFromUrl();
-    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
-
-    return () => {
-      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
-    };
-  }, []);
-
-  useEffect(() => {
-    const fixVersion = '2';
-    if (localStorage.getItem('pref_call_alarm_fix_version') !== fixVersion) {
+    const fixVersion = '3';
+    if (localStorage.getItem('pref_study_notification_fix_version') !== fixVersion) {
+      localStorage.removeItem('pref_study_notification_last_sent');
       localStorage.removeItem('pref_call_alarm_last_sent');
-      localStorage.setItem('pref_call_alarm_fix_version', fixVersion);
+      localStorage.setItem('pref_study_notification_fix_version', fixVersion);
     }
   }, []);
 
-  // Daily virtual call / review reminder alarm checker
+  // Daily study notification reminder checker
   useEffect(() => {
     const runReminderCheck = (force = false) => {
-      const alarmEnabled = localStorage.getItem('pref_call_alarm') !== '0';
-      if (!alarmEnabled) return;
+      const notificationEnabled = localStorage.getItem('pref_study_notification_enabled')
+        ?? localStorage.getItem('pref_call_alarm')
+        ?? '1';
+      if (notificationEnabled === '0') return;
 
-      const alarmTimeStr = localStorage.getItem('pref_call_alarm_time') || '20:00';
+      const alarmTimeStr = localStorage.getItem('pref_study_notification_time')
+        || localStorage.getItem('pref_call_alarm_time')
+        || '20:00';
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const alarmMinutes = minutesFromTime(alarmTimeStr);
@@ -212,34 +136,12 @@ export default function App() {
       if (!force && currentMinutes < alarmMinutes) return;
 
       const sentKey = getLocalDateKey(now, alarmTimeStr);
-      if (!force && localStorage.getItem('pref_call_alarm_last_sent') === sentKey) return;
+      if (!force && localStorage.getItem('pref_study_notification_last_sent') === sentKey) return;
 
       const payload = buildReminderPayload();
-      let delivered = false;
-
-      if (payload.targetPath) {
-        if (document.visibilityState === 'visible') {
-          setActiveCall({ active: true, callerName: payload.title });
-          delivered = true;
-        } else if ('Notification' in window && Notification.permission === 'granted') {
-          void sendSystemNotification(payload.title, payload.body, payload.targetPath).then(ok => {
-            if (ok && !force) localStorage.setItem('pref_call_alarm_last_sent', sentKey);
-          });
-          return;
-        }
-      } else if (document.visibilityState === 'hidden') {
-        void sendSystemNotification(payload.callerName || payload.title, payload.body).then(ok => {
-          if (ok && !force) localStorage.setItem('pref_call_alarm_last_sent', sentKey);
-        });
-        return;
-      } else if ((window as any).triggerVirtualCall) {
-        (window as any).triggerVirtualCall(payload.callerName || payload.title);
-        delivered = true;
-      }
-
-      if (delivered && !force) {
-        localStorage.setItem('pref_call_alarm_last_sent', sentKey);
-      }
+      void sendSystemNotification(payload.title, payload.body, payload.targetPath).then(ok => {
+        if (ok && !force) localStorage.setItem('pref_study_notification_last_sent', sentKey);
+      });
     };
 
     const handleVisibility = () => {
@@ -321,13 +223,6 @@ export default function App() {
       )}
 
       <BrowserRouter>
-        {activeCall && (
-          <VirtualCallOverlay 
-            callerName={activeCall.callerName} 
-            onClose={(reason) => handleCallClose(reason)} 
-          />
-        )}
-        <NavigationTracker onPageChange={handlePageChange} />
         <Routes>
           {/* Routes with bottom navigation */}
           <Route element={<AppShell />}>
@@ -349,12 +244,4 @@ export default function App() {
     </>
     </LangProvider>
   );
-}
-
-function NavigationTracker({ onPageChange }: { onPageChange: (path: string) => void }) {
-  const location = useLocation();
-  useEffect(() => {
-    onPageChange(location.pathname);
-  }, [location, onPageChange]);
-  return null;
 }

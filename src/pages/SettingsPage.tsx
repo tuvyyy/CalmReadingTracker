@@ -14,7 +14,6 @@ import {
   ChevronRight,
   Bell,
   Send,
-  PhoneCall,
 } from 'lucide-react';
 
 // ── Reusable row components ──────────────────────
@@ -239,17 +238,17 @@ export default function SettingsPage() {
   const [showTimer,    setShowTimer]    = useBoolPref('pref_timer',     true);
   const [playSound,    setPlaySound]    = useBoolPref('pref_sound',     true);
   const [highlightRow, setHighlightRow] = useBoolPref('pref_highlight', true);
-  const [callAlarm, setCallAlarm] = useBoolPref('pref_call_alarm', true);
-  const [alarmTime, setAlarmTime] = useState(() => localStorage.getItem('pref_call_alarm_time') || '20:00');
-  const [lastSent, setLastSent] = useState(() => localStorage.getItem('pref_call_alarm_last_sent') || '');
+  const [dailyNotification, setDailyNotification] = useBoolPref('pref_study_notification_enabled', localStorage.getItem('pref_call_alarm') !== '0');
+  const [alarmTime, setAlarmTime] = useState(() => localStorage.getItem('pref_study_notification_time') || localStorage.getItem('pref_call_alarm_time') || '20:00');
+  const [lastSent, setLastSent] = useState(() => localStorage.getItem('pref_study_notification_last_sent') || '');
   const [notifPermission, setNotifPermission] = useState(() => 
     ('Notification' in window) ? Notification.permission : 'denied'
   );
 
   const updateAlarmTime = (newTime: string) => {
     setAlarmTime(newTime);
-    localStorage.setItem('pref_call_alarm_time', newTime);
-    localStorage.removeItem('pref_call_alarm_last_sent');
+    localStorage.setItem('pref_study_notification_time', newTime);
+    localStorage.removeItem('pref_study_notification_last_sent');
     setLastSent('');
   };
 
@@ -263,7 +262,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const refreshNotificationState = () => {
       if ('Notification' in window) setNotifPermission(Notification.permission);
-      setLastSent(localStorage.getItem('pref_call_alarm_last_sent') || '');
+      setLastSent(localStorage.getItem('pref_study_notification_last_sent') || '');
     };
 
     window.addEventListener('focus', refreshNotificationState);
@@ -273,12 +272,6 @@ export default function SettingsPage() {
       document.removeEventListener('visibilitychange', refreshNotificationState);
     };
   }, []);
-
-  const triggerTestCall = () => {
-    if ((window as any).triggerVirtualCall) {
-      (window as any).triggerVirtualCall(lang === 'vi' ? 'Thầy Lee - Cuộc gọi thử' : 'Coach Lee - Test Call');
-    }
-  };
 
   const sendTestNotification = async () => {
     if (!('Notification' in window)) {
@@ -300,7 +293,7 @@ export default function SettingsPage() {
         : 'Test notification is working. Tap to open the app.',
       icon: '/icon.png',
       badge: '/icon.png',
-      tag: 'study-call-test',
+      tag: 'study-reminder-test',
       data: { targetPath: '/' },
     };
 
@@ -358,8 +351,8 @@ export default function SettingsPage() {
 
 
 
-        {/* ── Virtual Call Reminders ── */}
-        <SectionHeader label={lang === 'vi' ? 'AI Gọi Nhắc Học (Virtual Call)' : 'AI virtual call'} />
+        {/* ── Study Notifications ── */}
+        <SectionHeader label={lang === 'vi' ? 'Thông báo nhắc học' : 'Study notifications'} />
         <SettingsGroup>
           <SettingsRow
             icon={<Bell size={17} strokeWidth={1.8} />}
@@ -394,27 +387,20 @@ export default function SettingsPage() {
           />
           <Divider />
           <SettingsRow
-            icon={<PhoneCall size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Gọi thử ngay' : 'Test virtual call'}
-            sub={lang === 'vi' ? 'Kiểm tra màn hình cuộc gọi trong app' : 'Check the in-app call screen'}
-            onClick={triggerTestCall}
-          />
-          <Divider />
-          <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Bật gọi nhắc hàng ngày' : 'Daily Call Alarm'}
-            sub={lang === 'vi' ? `Nhắc một lần/ngày từ ${alarmTime} khi app đang mở hoặc mở lại sau giờ` : `Once daily from ${alarmTime} while the app is open or reopened after time`}
-            right={<Toggle checked={callAlarm} onChange={() => {
-              localStorage.removeItem('pref_call_alarm_last_sent');
+            label={lang === 'vi' ? 'Bật nhắc học hằng ngày' : 'Daily study reminder'}
+            sub={lang === 'vi' ? `Gửi thông báo lúc ${alarmTime} khi PWA còn hoạt động/nền` : `Sends a notification at ${alarmTime} while the PWA is active/backgrounded`}
+            right={<Toggle checked={dailyNotification} onChange={() => {
+              localStorage.removeItem('pref_study_notification_last_sent');
               setLastSent('');
-              setCallAlarm(v => !v);
+              setDailyNotification(v => !v);
             }} />}
           />
           <Divider />
           <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}
-            label={lang === 'vi' ? 'Đặt giờ gọi nhắc' : 'Set Alarm Time'}
-            sub={lang === 'vi' ? 'Thay đổi khung giờ gọi nhắc nhở' : 'Change daily call reminder time'}
+            label={lang === 'vi' ? 'Đặt giờ thông báo' : 'Set reminder time'}
+            sub={lang === 'vi' ? 'Thay đổi khung giờ nhắc học hằng ngày' : 'Change daily study notification time'}
             right={
               <input
                 type="time"
