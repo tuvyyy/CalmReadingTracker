@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLang } from '../i18n/LangContext';
 import type { Lang } from '../i18n/translations';
 import { dbService } from '../services/dbService';
@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Bell,
   Send,
+  PhoneCall,
 } from 'lucide-react';
 
 // ── Reusable row components ──────────────────────
@@ -240,6 +241,7 @@ export default function SettingsPage() {
   const [highlightRow, setHighlightRow] = useBoolPref('pref_highlight', true);
   const [callAlarm, setCallAlarm] = useBoolPref('pref_call_alarm', true);
   const [alarmTime, setAlarmTime] = useState(() => localStorage.getItem('pref_call_alarm_time') || '20:00');
+  const [lastSent, setLastSent] = useState(() => localStorage.getItem('pref_call_alarm_last_sent') || '');
   const [notifPermission, setNotifPermission] = useState(() => 
     ('Notification' in window) ? Notification.permission : 'denied'
   );
@@ -247,12 +249,34 @@ export default function SettingsPage() {
   const updateAlarmTime = (newTime: string) => {
     setAlarmTime(newTime);
     localStorage.setItem('pref_call_alarm_time', newTime);
+    localStorage.removeItem('pref_call_alarm_last_sent');
+    setLastSent('');
   };
 
   const requestPermission = async () => {
     if ('Notification' in window) {
       const res = await Notification.requestPermission();
       setNotifPermission(res);
+    }
+  };
+
+  useEffect(() => {
+    const refreshNotificationState = () => {
+      if ('Notification' in window) setNotifPermission(Notification.permission);
+      setLastSent(localStorage.getItem('pref_call_alarm_last_sent') || '');
+    };
+
+    window.addEventListener('focus', refreshNotificationState);
+    document.addEventListener('visibilitychange', refreshNotificationState);
+    return () => {
+      window.removeEventListener('focus', refreshNotificationState);
+      document.removeEventListener('visibilitychange', refreshNotificationState);
+    };
+  }, []);
+
+  const triggerTestCall = () => {
+    if ((window as any).triggerVirtualCall) {
+      (window as any).triggerVirtualCall(lang === 'vi' ? 'Thầy Lee - Cuộc gọi thử' : 'Coach Lee - Test Call');
     }
   };
 
@@ -370,10 +394,21 @@ export default function SettingsPage() {
           />
           <Divider />
           <SettingsRow
+            icon={<PhoneCall size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Gọi thử ngay' : 'Test virtual call'}
+            sub={lang === 'vi' ? 'Kiểm tra màn hình cuộc gọi trong app' : 'Check the in-app call screen'}
+            onClick={triggerTestCall}
+          />
+          <Divider />
+          <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}
             label={lang === 'vi' ? 'Bật gọi nhắc hàng ngày' : 'Daily Call Alarm'}
             sub={lang === 'vi' ? `Nhắc một lần/ngày từ ${alarmTime} khi app đang mở hoặc mở lại sau giờ` : `Once daily from ${alarmTime} while the app is open or reopened after time`}
-            right={<Toggle checked={callAlarm} onChange={() => setCallAlarm(v => !v)} />}
+            right={<Toggle checked={callAlarm} onChange={() => {
+              localStorage.removeItem('pref_call_alarm_last_sent');
+              setLastSent('');
+              setCallAlarm(v => !v);
+            }} />}
           />
           <Divider />
           <SettingsRow
@@ -396,6 +431,16 @@ export default function SettingsPage() {
                   outline: 'none',
                 }}
               />
+            }
+          />
+          <Divider />
+          <SettingsRow
+            icon={<Bell size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Lần nhắc gần nhất' : 'Last reminder'}
+            sub={
+              lastSent
+                ? lastSent
+                : (lang === 'vi' ? 'Chưa ghi nhận lần nhắc nào' : 'No reminder recorded yet')
             }
           />
         </SettingsGroup>

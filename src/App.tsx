@@ -70,7 +70,7 @@ export default function App() {
   const [activeCall, setActiveCall] = useState<{ active: boolean; callerName: string } | null>(null);
   const [callbackTimer, setCallbackTimer] = useState<any>(null);
 
-  const sendSystemNotification = useCallback((callerName: string, bodyText?: string, targetPath?: string) => {
+  const sendSystemNotification = useCallback(async (callerName: string, bodyText?: string, targetPath?: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       const options = {
         body: bodyText || 'Cuộc gọi thoại nhắc học bài đang đến! Nhấp vào để nghe máy. 📞',
@@ -82,11 +82,17 @@ export default function App() {
         data: { callerName, targetPath }
       };
 
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.showNotification(callerName, options);
-        });
-      } else {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(callerName, options);
+          return true;
+        } catch {
+          // Fall back to the page notification below.
+        }
+      }
+
+      try {
         const notification = new Notification(callerName, options);
         notification.onclick = () => {
           window.focus();
@@ -98,8 +104,12 @@ export default function App() {
             }
           }
         };
+        return true;
+      } catch {
+        return false;
       }
     }
+    return false;
   }, []);
 
   const handleCallClose = (reason: 'accept' | 'decline' | 'silent') => {
@@ -119,7 +129,7 @@ export default function App() {
             : 'Thầy Lee (Gọi Lại - Chưa Học Bài)';
 
           if (document.visibilityState === 'hidden') {
-            sendSystemNotification(caller);
+            void sendSystemNotification(caller);
           } else {
             if ((window as any).triggerVirtualCall) {
               (window as any).triggerVirtualCall(caller);
@@ -180,6 +190,14 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const fixVersion = '2';
+    if (localStorage.getItem('pref_call_alarm_fix_version') !== fixVersion) {
+      localStorage.removeItem('pref_call_alarm_last_sent');
+      localStorage.setItem('pref_call_alarm_fix_version', fixVersion);
+    }
+  }, []);
+
   // Daily virtual call / review reminder alarm checker
   useEffect(() => {
     const runReminderCheck = (force = false) => {
@@ -195,25 +213,32 @@ export default function App() {
 
       const sentKey = getLocalDateKey(now, alarmTimeStr);
       if (!force && localStorage.getItem('pref_call_alarm_last_sent') === sentKey) return;
-      if (!force) localStorage.setItem('pref_call_alarm_last_sent', sentKey);
 
       const payload = buildReminderPayload();
+      let delivered = false;
 
       if (payload.targetPath) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          sendSystemNotification(payload.title, payload.body, payload.targetPath);
-        } else if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible') {
           setActiveCall({ active: true, callerName: payload.title });
+          delivered = true;
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          void sendSystemNotification(payload.title, payload.body, payload.targetPath).then(ok => {
+            if (ok && !force) localStorage.setItem('pref_call_alarm_last_sent', sentKey);
+          });
+          return;
         }
+      } else if (document.visibilityState === 'hidden') {
+        void sendSystemNotification(payload.callerName || payload.title, payload.body).then(ok => {
+          if (ok && !force) localStorage.setItem('pref_call_alarm_last_sent', sentKey);
+        });
         return;
+      } else if ((window as any).triggerVirtualCall) {
+        (window as any).triggerVirtualCall(payload.callerName || payload.title);
+        delivered = true;
       }
 
-      if (document.visibilityState === 'hidden') {
-        sendSystemNotification(payload.callerName || payload.title, payload.body);
-      } else {
-        if ((window as any).triggerVirtualCall) {
-          (window as any).triggerVirtualCall(payload.callerName || payload.title);
-        }
+      if (delivered && !force) {
+        localStorage.setItem('pref_call_alarm_last_sent', sentKey);
       }
     };
 
