@@ -13,6 +13,7 @@ import {
   Info,
   ChevronRight,
   Bell,
+  Send,
 } from 'lucide-react';
 
 // ── Reusable row components ──────────────────────
@@ -255,6 +256,38 @@ export default function SettingsPage() {
     }
   };
 
+  const sendTestNotification = async () => {
+    if (!('Notification' in window)) {
+      globalThis.alert(lang === 'vi' ? 'Trình duyệt này chưa hỗ trợ thông báo.' : 'This browser does not support notifications.');
+      return;
+    }
+
+    let permission = Notification.permission;
+    if (permission !== 'granted') {
+      permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+    }
+
+    if (permission !== 'granted') return;
+
+    const options = {
+      body: lang === 'vi'
+        ? 'Thông báo thử hoạt động rồi. Bấm vào để mở app.'
+        : 'Test notification is working. Tap to open the app.',
+      icon: '/icon.png',
+      badge: '/icon.png',
+      tag: 'study-call-test',
+      data: { targetPath: '/' },
+    };
+
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification(lang === 'vi' ? 'Water Spirit nhắc học' : 'Water Spirit Reminder', options);
+    } else {
+      new Notification(lang === 'vi' ? 'Water Spirit nhắc học' : 'Water Spirit Reminder', options);
+    }
+  };
+
 
 
   return (
@@ -330,9 +363,16 @@ export default function SettingsPage() {
           />
           <Divider />
           <SettingsRow
+            icon={<Send size={17} strokeWidth={1.8} />}
+            label={lang === 'vi' ? 'Gửi thông báo thử' : 'Send test notification'}
+            sub={lang === 'vi' ? 'Bấm để kiểm tra nhanh trên điện thoại' : 'Tap to quickly test on your phone'}
+            onClick={sendTestNotification}
+          />
+          <Divider />
+          <SettingsRow
             icon={<Clock size={17} strokeWidth={1.8} />}
             label={lang === 'vi' ? 'Bật gọi nhắc hàng ngày' : 'Daily Call Alarm'}
-            sub={lang === 'vi' ? `Tự động gọi lúc ${alarmTime} hàng ngày` : `Automatically calls at ${alarmTime} daily`}
+            sub={lang === 'vi' ? `Nhắc một lần/ngày từ ${alarmTime} khi app đang mở hoặc mở lại sau giờ` : `Once daily from ${alarmTime} while the app is open or reopened after time`}
             right={<Toggle checked={callAlarm} onChange={() => setCallAlarm(v => !v)} />}
           />
           <Divider />

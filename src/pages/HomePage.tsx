@@ -4,7 +4,8 @@ import { useLang } from '../i18n/LangContext';
 import { dbService } from '../services/dbService';
 import {
   BookOpen, AlertCircle, BookMarked,
-  ChevronRight, TrendingUp, Compass, Sparkles, BookOpenCheck, Flame
+  ChevronRight, TrendingUp, Compass, Sparkles, BookOpenCheck, Flame,
+  Target, CalendarDays, Brain, BellRing, CheckCircle2
 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -49,6 +50,7 @@ export default function HomePage() {
   const { t, lang } = useLang();
   
   const metrics = dbService.getMetrics();
+  const dashboard = dbService.getStudyDashboard();
   const syllabusProgress = dbService.getSyllabusProgress('grammar-core');
   const isDay1Done = syllabusProgress?.completed ?? false;
 
@@ -217,16 +219,152 @@ export default function HomePage() {
         {/* Stats Grid cards */}
         <div className="hero__stats" style={{ display: 'flex', gap: 10, marginTop: 20, position: 'relative', zIndex: 1 }}>
           <div className="stat-glass" style={{ flex: 1, padding: '10px 6px', background: 'rgba(18, 43, 59, 0.4)', borderRadius: 14 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--foam)' }}>{metrics.tests}</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--foam)' }}>{dashboard.tests.done}</div>
             <div style={{ fontSize: '0.62rem', color: 'var(--silver)', marginTop: 2 }}>{t('home', 'tests_done')}</div>
           </div>
           <div className="stat-glass" style={{ flex: 1, padding: '10px 6px', background: 'rgba(18, 43, 59, 0.4)', borderRadius: 14 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--danger)' }}>{metrics.wrong}</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--danger)' }}>{dashboard.wrong.total}</div>
             <div style={{ fontSize: '0.62rem', color: 'var(--silver)', marginTop: 2 }}>{t('home', 'wrong_cnt')}</div>
           </div>
           <div className="stat-glass" style={{ flex: 1, padding: '10px 6px', background: 'rgba(18, 43, 59, 0.4)', borderRadius: 14 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--aqua)' }}>{metrics.avg}%</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--aqua)' }}>{dashboard.tests.avgPct}%</div>
             <div style={{ fontSize: '0.62rem', color: 'var(--silver)', marginTop: 2 }}>{t('home', 'avg_score')}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Exam Focus Dashboard ── */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div className="glass-panel fade-up" style={{
+          padding: 16,
+          borderRadius: 22,
+          background: 'linear-gradient(135deg, rgba(18, 43, 59, 0.56) 0%, rgba(7, 16, 20, 0.72) 100%)',
+          border: '1px solid rgba(142, 216, 232, 0.14)',
+          textAlign: 'left',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: '0.64rem', fontFamily: 'var(--font-label)', fontWeight: 800, color: 'var(--aqua)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                {lang === 'vi' ? 'NƯỚC RÚT 05/08' : 'EXAM SPRINT'}
+              </div>
+              <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: '1.35rem', color: 'var(--foam)', fontWeight: 800 }}>
+                {dashboard.daysToExam} {lang === 'vi' ? 'ngày nữa thi' : 'days left'}
+              </div>
+            </div>
+            <div style={{
+              width: 62,
+              height: 62,
+              borderRadius: 18,
+              background: 'rgba(142, 216, 232, 0.09)',
+              border: '1px solid rgba(142, 216, 232, 0.22)',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'var(--aqua)',
+              flexShrink: 0,
+            }}>
+              <Target size={28} strokeWidth={2.1} />
+            </div>
+          </div>
+
+          <button
+            onClick={() => nav(dashboard.focus.path)}
+            style={{
+              width: '100%',
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: dashboard.todayStudied ? 'rgba(126, 224, 184, 0.08)' : 'rgba(142, 216, 232, 0.08)',
+              borderRadius: 16,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              textAlign: 'left',
+              marginBottom: 14,
+            }}
+          >
+            <span style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              display: 'grid',
+              placeItems: 'center',
+              background: dashboard.todayStudied ? 'rgba(126, 224, 184, 0.13)' : 'rgba(142, 216, 232, 0.13)',
+              color: dashboard.todayStudied ? 'var(--success)' : 'var(--aqua)',
+              flexShrink: 0,
+            }}>
+              {dashboard.todayStudied ? <CheckCircle2 size={19} /> : <BellRing size={19} />}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', color: 'var(--foam)', fontWeight: 800, fontSize: '0.88rem' }}>
+                {dashboard.todayStudied
+                  ? (lang === 'vi' ? 'Hôm nay đã có tiến độ' : 'Progress recorded today')
+                  : dashboard.focus.label}
+              </span>
+              <span style={{ display: 'block', color: 'var(--silver)', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 2 }}>
+                {dashboard.todayStudied
+                  ? (lang === 'vi' ? 'Làm thêm một lượt ngắn để giữ nhịp.' : 'Do one more short round to keep momentum.')
+                  : dashboard.focus.sub}
+              </span>
+            </span>
+            <ChevronRight size={16} color="var(--aqua)" />
+          </button>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              {
+                icon: <CalendarDays size={15} />,
+                label: lang === 'vi' ? 'Sẵn sàng' : 'Readiness',
+                value: `${dashboard.readinessPct}%`,
+                sub: lang === 'vi' ? `Best đề ${dashboard.tests.bestPct}%` : `Best test ${dashboard.tests.bestPct}%`,
+                color: 'var(--aqua)',
+              },
+              {
+                icon: <AlertCircle size={15} />,
+                label: lang === 'vi' ? 'Câu sai' : 'Mistakes',
+                value: dashboard.wrong.total,
+                sub: dashboard.wrong.priority === 'clear'
+                  ? (lang === 'vi' ? 'Đang sạch lỗi' : 'Clean')
+                  : (lang === 'vi' ? 'Nên xử lý trước' : 'Review first'),
+                color: dashboard.wrong.total > 0 ? 'var(--danger)' : 'var(--success)',
+              },
+              {
+                icon: <BookMarked size={15} />,
+                label: lang === 'vi' ? 'Từ thuộc' : 'Vocab',
+                value: `${dashboard.vocab.masteredCount}/${dashboard.vocab.total}`,
+                sub: `${dashboard.vocab.reviewCount} review`,
+                color: 'var(--success)',
+              },
+              {
+                icon: <Brain size={15} />,
+                label: lang === 'vi' ? 'Grammar' : 'Grammar',
+                value: `${dashboard.grammar.pct}%`,
+                sub: `${dashboard.grammar.done}/${dashboard.grammar.total}`,
+                color: '#ffd68f',
+              },
+            ].map(item => (
+              <div
+                key={item.label}
+                style={{
+                  borderRadius: 15,
+                  padding: 12,
+                  background: 'rgba(255,255,255,0.035)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: item.color, marginBottom: 7 }}>
+                  {item.icon}
+                  <span style={{ fontSize: '0.62rem', color: 'var(--silver)', fontWeight: 800, fontFamily: 'var(--font-label)', textTransform: 'uppercase' }}>
+                    {item.label}
+                  </span>
+                </div>
+                <div style={{ color: 'var(--foam)', fontWeight: 900, fontSize: '1rem', lineHeight: 1 }}>
+                  {item.value}
+                </div>
+                <div style={{ color: 'var(--silver)', fontSize: '0.66rem', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {item.sub}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import {
   BUILT_IN_PART5_PRACTICE_TESTS,
   type PracticeQuestion,
 } from './part5PracticeData';
+import { SYLLABUS_DAYS } from './syllabusData';
 
 export interface TestItem {
   id: string;
@@ -518,7 +519,57 @@ export interface SavedResult {
   submittedAt: string;
 }
 
+export interface StudyDashboard {
+  examDate: string;
+  daysToExam: number;
+  readinessPct: number;
+  todayStudied: boolean;
+  tests: {
+    total: number;
+    done: number;
+    pending: number;
+    avgPct: number;
+    bestPct: number;
+  };
+  wrong: {
+    total: number;
+    priority: 'high' | 'medium' | 'clear';
+  };
+  vocab: {
+    total: number;
+    newCount: number;
+    reviewCount: number;
+    masteredCount: number;
+    masteredPct: number;
+  };
+  grammar: {
+    total: number;
+    done: number;
+    pct: number;
+  };
+  syllabus: {
+    total: number;
+    done: number;
+    pct: number;
+    nextDayId?: string;
+    nextDayNo?: number;
+    nextTitle?: string;
+  };
+  focus: {
+    label: string;
+    sub: string;
+    path: string;
+    kind: 'wrong' | 'vocab' | 'syllabus' | 'tests';
+  };
+}
+
 class DbService {
+  private getLocalDateString(date: Date = new Date()): string {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().split('T')[0];
+  }
+
   private saveBuiltInPracticeSet() {
     try {
       BUILT_IN_PART5_PRACTICE_TESTS.forEach(test => {
@@ -839,6 +890,117 @@ class DbService {
       tests: totalDone,
       wrong: wrongCount,
       avg: avgScore,
+    };
+  }
+
+  public getStudyDashboard(): StudyDashboard {
+    const tests = this.getTests();
+    const completedTests = tests.filter(t => t.status === 'done');
+    const testScores = completedTests.map(t => {
+      const total = t.totalCount || 30;
+      return total > 0 ? Math.round(((t.score || 0) / total) * 100) : 0;
+    });
+
+    const avgPct = testScores.length > 0
+      ? Math.round(testScores.reduce((sum, score) => sum + score, 0) / testScores.length)
+      : 0;
+    const bestPct = testScores.length > 0 ? Math.max(...testScores) : 0;
+
+    const wrongCount = this.getWrongQuestions().length;
+    const vocabList = this.getVocabList();
+    const vocabMastered = vocabList.filter(v => v.status === 'mastered').length;
+    const vocabReview = vocabList.filter(v => v.status === 'review').length;
+    const vocabNew = vocabList.filter(v => (v.status || 'new') === 'new').length;
+    const vocabPct = vocabList.length > 0 ? Math.round((vocabMastered / vocabList.length) * 100) : 0;
+
+    const grammar = this.getGrammarMetrics();
+    const syllabusDone = SYLLABUS_DAYS.filter(day => this.getSyllabusProgress(day.id)?.completed).length;
+    const nextDay = SYLLABUS_DAYS.find(day => !this.getSyllabusProgress(day.id)?.completed);
+    const syllabusPct = SYLLABUS_DAYS.length > 0 ? Math.round((syllabusDone / SYLLABUS_DAYS.length) * 100) : 0;
+
+    const now = new Date();
+    const todayStr = this.getLocalDateString(now);
+    const target = new Date('2026-08-05T00:00:00+07:00');
+    const daysToExam = Math.max(0, Math.ceil((target.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+    const todayStudied = this.getStudyHistory().includes(todayStr);
+
+    const wrongPenalty = Math.min(18, wrongCount * 3);
+    const readinessPct = Math.max(0, Math.min(100, Math.round(
+      bestPct * 0.35 +
+      grammar.pct * 0.2 +
+      vocabPct * 0.2 +
+      syllabusPct * 0.25 -
+      wrongPenalty
+    )));
+
+    let focus: StudyDashboard['focus'];
+    if (wrongCount > 0) {
+      focus = {
+        kind: 'wrong',
+        label: 'Ôn câu sai',
+        sub: `${wrongCount} câu đang chờ sửa lỗi`,
+        path: '/wrong',
+      };
+    } else if (vocabReview > 0) {
+      focus = {
+        kind: 'vocab',
+        label: 'Ôn từ vựng',
+        sub: `${vocabReview} từ đang ở vòng review`,
+        path: '/vocab',
+      };
+    } else if (nextDay) {
+      focus = {
+        kind: 'syllabus',
+        label: `Học Day ${nextDay.dayNo}`,
+        sub: nextDay.title,
+        path: `/syllabus/day/${nextDay.id}`,
+      };
+    } else {
+      focus = {
+        kind: 'tests',
+        label: 'Làm Part 5',
+        sub: 'Giữ nhịp làm đề mỗi ngày',
+        path: '/tests',
+      };
+    }
+
+    return {
+      examDate: '2026-08-05',
+      daysToExam,
+      readinessPct,
+      todayStudied,
+      tests: {
+        total: tests.length,
+        done: completedTests.length,
+        pending: Math.max(0, tests.length - completedTests.length),
+        avgPct,
+        bestPct,
+      },
+      wrong: {
+        total: wrongCount,
+        priority: wrongCount >= 8 ? 'high' : wrongCount > 0 ? 'medium' : 'clear',
+      },
+      vocab: {
+        total: vocabList.length,
+        newCount: vocabNew,
+        reviewCount: vocabReview,
+        masteredCount: vocabMastered,
+        masteredPct: vocabPct,
+      },
+      grammar: {
+        total: grammar.total,
+        done: grammar.done,
+        pct: grammar.pct,
+      },
+      syllabus: {
+        total: SYLLABUS_DAYS.length,
+        done: syllabusDone,
+        pct: syllabusPct,
+        nextDayId: nextDay?.id,
+        nextDayNo: nextDay?.dayNo,
+        nextTitle: nextDay?.title,
+      },
+      focus,
     };
   }
 
